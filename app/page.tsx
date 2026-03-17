@@ -6,6 +6,7 @@ import Calculator from '@/components/Calculator';
 import Avatar from '@/components/Avatar';
 import PostDrink from '@/components/PostDrink';
 import DrinkFeed from '@/components/DrinkFeed';
+import DrinkCharts from '@/components/DrinkCharts';
 import Leaderboard from '@/components/Leaderboard';
 import FlunkyBall from '@/components/FlunkyBall';
 
@@ -75,7 +76,7 @@ export default function Home() {
       {/* ZONE DE CONTENU DYNAMIQUE */}
       <div className="flex-1 overflow-y-auto px-5 pb-32">
         
-        {/* ONGLET ACTIVITY (Feed & Leaderboard) */}
+        {/* ONGLET ACTIVITY (Feed & Ranking) */}
         {activeTab === 'activity' && (
           <div className="mt-6 space-y-6 animate-in fade-in duration-500">
             <div className="flex p-1 bg-[#141417] rounded-xl border border-white/5 shadow-inner">
@@ -99,7 +100,8 @@ export default function Home() {
                 <DrinkFeed />
               </div>
             ) : (
-              <div className="animate-in slide-in-from-bottom-4">
+              <div className="space-y-10 animate-in slide-in-from-bottom-4">
+                <DrinkCharts />
                 <Leaderboard />
               </div>
             )}
@@ -113,7 +115,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* ONGLET CALCULATOR */}
+        {/* ONGLET CALCULATOR (Pearls) */}
         {activeTab === 'calc' && (
           <div className="mt-6 animate-in slide-in-from-bottom-4 duration-500">
             <Calculator />
@@ -121,8 +123,8 @@ export default function Home() {
         )}
       </div>
 
-      {/* NAVIGATION BAR FLOTTANTE (Design 3 Boutons) */}
-      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-[#1A1A1E]/95 backdrop-blur-3xl border border-white/10 p-1.5 rounded-[2.2rem] flex justify-between items-center shadow-2xl z-50">
+      {/* NAVIGATION BAR FLOTTANTE (Retour au Design 3 Boutons) */}
+      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-[#1A1A1E]/95 backdrop-blur-3xl border border-white/10 p-1.5 rounded-[2.2rem] flex justify-between items-center shadow-2xl z-50">
         
         {/* Activity Tab */}
         <button 
@@ -133,13 +135,13 @@ export default function Home() {
           <span className="text-[8px] font-black uppercase tracking-widest">Feed</span>
         </button>
 
-        {/* Flunky Ball Tab (VS) */}
+        {/* Flunky Ball Tab */}
         <button 
           onClick={() => setActiveTab('flunky')} 
           className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-[1.8rem] transition-all ${activeTab === 'flunky' ? 'bg-[#DFFF5E] text-black' : 'text-white/20'}`}
         >
           <span className="text-xl leading-none">⚽️</span>
-          <span className="text-[8px] font-black uppercase tracking-widest">Flunkyball</span>
+          <span className="text-[8px] font-black uppercase tracking-widest">Flunky</span>
         </button>
 
         {/* Pearls Tab */}
@@ -147,10 +149,10 @@ export default function Home() {
           onClick={() => setActiveTab('calc')} 
           className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-[1.8rem] transition-all ${activeTab === 'calc' ? 'bg-[#DFFF5E] text-black' : 'text-white/20'}`}
         >
-          <span className="text-xl leading-none">💰</span>
+          <span className="text-xl leading-none">💎</span>
           <span className="text-[8px] font-black uppercase tracking-widest">Pearls</span>
         </button>
-      </div>
+      </nav>
       
     </main>
   );
