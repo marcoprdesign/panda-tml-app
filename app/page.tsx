@@ -36,7 +36,7 @@ export default function Home() {
 
   if (loading) return (
     <div className="min-h-screen bg-[#0A0A0C] flex items-center justify-center text-[#DFFF5E] font-black italic tracking-widest animate-pulse">
-      TML HUB...
+      PANDAS OF TOMORROWLAND...
     </div>
   );
 
@@ -60,7 +60,7 @@ export default function Home() {
                 />
             </div>
             <div className="flex flex-col">
-              <h1 className="text-lg font-black italic tracking-tighter uppercase leading-none">TML HUB</h1>
+              <h1 className="text-lg font-black italic tracking-tighter uppercase leading-none">PANDAS OF TOMORROWLAND</h1>
               <span className="text-[7px] font-bold text-[#DFFF5E] uppercase tracking-[0.2em] mt-1">Tomorrowland 2026</span>
             </div>
         </div>
