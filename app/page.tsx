@@ -129,8 +129,8 @@ export default function Home() {
           onClick={() => setActiveTab('activity')} 
           className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-[1.8rem] transition-all ${activeTab === 'activity' ? 'bg-[#DFFF5E] text-black' : 'text-white/20'}`}
         >
-          <span className="text-xl leading-none">⚡</span>
-          <span className="text-[8px] font-black uppercase tracking-widest">Live</span>
+          <span className="text-xl leading-none">📸</span>
+          <span className="text-[8px] font-black uppercase tracking-widest">Feed</span>
         </button>
 
         {/* Flunky Ball Tab (VS) */}
@@ -138,8 +138,8 @@ export default function Home() {
           onClick={() => setActiveTab('flunky')} 
           className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-[1.8rem] transition-all ${activeTab === 'flunky' ? 'bg-[#DFFF5E] text-black' : 'text-white/20'}`}
         >
-          <span className="text-xl leading-none">🥊</span>
-          <span className="text-[8px] font-black uppercase tracking-widest">Match</span>
+          <span className="text-xl leading-none">⚽️</span>
+          <span className="text-[8px] font-black uppercase tracking-widest">Flunkyball</span>
         </button>
 
         {/* Pearls Tab */}
@@ -147,7 +147,7 @@ export default function Home() {
           onClick={() => setActiveTab('calc')} 
           className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-[1.8rem] transition-all ${activeTab === 'calc' ? 'bg-[#DFFF5E] text-black' : 'text-white/20'}`}
         >
-          <span className="text-xl leading-none">💎</span>
+          <span className="text-xl leading-none">💰</span>
           <span className="text-[8px] font-black uppercase tracking-widest">Pearls</span>
         </button>
       </div>
