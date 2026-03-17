@@ -25,18 +25,3 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
-/* Empêche le zoom automatique sur iOS lors du focus des inputs */
-@media screen and (max-width: 768px) {
-  input, select, textarea {
-    font-size: 16px !important;
-  }
-}
-
-/* On remet ensuite la taille visuelle qu'on veut via Tailwind dans les composants 
-   Le navigateur "croit" que c'est du 16px donc il ne zoome pas, 
-   mais Tailwind reprend le dessus pour l'affichage. */
-
-   body {
-  touch-action: pan-x pan-y; /* Autorise le scroll mais bloque le zoom tactile */
-  -webkit-text-size-adjust: 100%; /* Empêche l'ajustement auto du texte */
-}
