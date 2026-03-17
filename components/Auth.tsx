@@ -50,7 +50,7 @@ export default function Auth() {
     <div className="w-full max-w-sm mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
       <div className="text-center space-y-2">
         <h1 className="text-5xl font-black italic tracking-tighter text-white uppercase leading-none">
-          TML HUB
+          PANDAS OF TOMORROWLAND
         </h1>
         <p className="text-[10px] font-bold text-[#DFFF5E] uppercase tracking-[0.3em]">
           {isRegister ? 'Join the crew' : 'Welcome back raver'}
