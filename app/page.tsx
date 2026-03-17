@@ -9,11 +9,12 @@ import DrinkFeed from '@/components/DrinkFeed';
 import DrinkCharts from '@/components/DrinkCharts';
 import Leaderboard from '@/components/Leaderboard';
 import FlunkyBall from '@/components/FlunkyBall';
+import Schedule from '@/components/Schedule'; // Nouvel import
 
 export default function Home() {
   const [session, setSession] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState('activity'); // activity | flunky | calc
+  const [activeTab, setActiveTab] = useState('activity'); // activity | schedule | flunky | calc
   const [subTab, setSubTab] = useState('feed');
   const [loading, setLoading] = useState(true);
 
@@ -36,7 +37,7 @@ export default function Home() {
   }
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0A0A0C] flex items-center justify-center text-[#DFFF5E] font-black italic tracking-widest animate-pulse">
+    <div className="min-h-screen bg-[#0A0A0C] flex items-center justify-center text-[#DFFF5E] font-black italic tracking-widest animate-pulse uppercase text-xs">
       PANDAS OF TOMORROWLAND...
     </div>
   );
@@ -108,6 +109,13 @@ export default function Home() {
           </div>
         )}
 
+        {/* ONGLET LINEUP (Nouveau) */}
+        {activeTab === 'schedule' && (
+          <div className="mt-6 animate-in slide-in-from-bottom-4 duration-500">
+            <Schedule />
+          </div>
+        )}
+
         {/* ONGLET FLUNKY BALL */}
         {activeTab === 'flunky' && (
           <div className="mt-6 animate-in slide-in-from-bottom-4 duration-500">
@@ -123,34 +131,43 @@ export default function Home() {
         )}
       </div>
 
-      {/* NAVIGATION BAR FLOTTANTE (Retour au Design 3 Boutons) */}
-      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-[#1A1A1E]/95 backdrop-blur-3xl border border-white/10 p-1.5 rounded-[2.2rem] flex justify-between items-center shadow-2xl z-50">
+      {/* NAVIGATION BAR FLOTTANTE (4 Boutons) */}
+      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[94%] max-w-sm bg-[#1A1A1E]/95 backdrop-blur-3xl border border-white/10 p-1.5 rounded-[2.2rem] flex justify-between items-center shadow-2xl z-50">
         
-        {/* Activity Tab */}
+        {/* Feed */}
         <button 
           onClick={() => setActiveTab('activity')} 
           className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-[1.8rem] transition-all ${activeTab === 'activity' ? 'bg-[#DFFF5E] text-black' : 'text-white/20'}`}
         >
-          <span className="text-xl leading-none">📸</span>
-          <span className="text-[8px] font-black uppercase tracking-widest">Feed</span>
+          <span className="text-lg leading-none">📸</span>
+          <span className="text-[7px] font-black uppercase tracking-widest">Feed</span>
         </button>
 
-        {/* Flunky Ball Tab */}
+        {/* Schedule */}
+        <button 
+          onClick={() => setActiveTab('schedule')} 
+          className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-[1.8rem] transition-all ${activeTab === 'schedule' ? 'bg-[#DFFF5E] text-black' : 'text-white/20'}`}
+        >
+          <span className="text-lg leading-none">📅</span>
+          <span className="text-[7px] font-black uppercase tracking-widest">Lineup</span>
+        </button>
+
+        {/* Flunky */}
         <button 
           onClick={() => setActiveTab('flunky')} 
           className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-[1.8rem] transition-all ${activeTab === 'flunky' ? 'bg-[#DFFF5E] text-black' : 'text-white/20'}`}
         >
-          <span className="text-xl leading-none">⚽️</span>
-          <span className="text-[8px] font-black uppercase tracking-widest">Flunky</span>
+          <span className="text-lg leading-none">⚽️</span>
+          <span className="text-[7px] font-black uppercase tracking-widest">Flunky</span>
         </button>
 
-        {/* Pearls Tab */}
+        {/* Pearls */}
         <button 
           onClick={() => setActiveTab('calc')} 
           className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-[1.8rem] transition-all ${activeTab === 'calc' ? 'bg-[#DFFF5E] text-black' : 'text-white/20'}`}
         >
-          <span className="text-xl leading-none">💎</span>
-          <span className="text-[8px] font-black uppercase tracking-widest">Pearls</span>
+          <span className="text-lg leading-none">💎</span>
+          <span className="text-[7px] font-black uppercase tracking-widest">Pearls</span>
         </button>
       </nav>
       
