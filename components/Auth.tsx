@@ -6,7 +6,7 @@ export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [username, setUsername] = useState(''); // Nouvel état pour le surnom
+  const [username, setUsername] = useState('');
   const [isRegister, setIsRegister] = useState(false);
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -14,32 +14,21 @@ export default function Auth() {
     setLoading(true);
     
     if (isRegister) {
-      // 1. Inscription Auth
       const { data, error: signUpError } = await supabase.auth.signUp({ 
         email, 
         password,
-        options: {
-          data: {
-            full_name: username, // On stocke aussi dans les metadata auth
-          }
-        }
+        options: { data: { full_name: username } }
       });
 
       if (signUpError) {
         alert(signUpError.message);
       } else if (data.user) {
-        // 2. Création du profil avec le surnom
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert([
-            { id: data.user.id, username: username, avatar_url: null }
-          ]);
-        
-        if (profileError) console.error("Profile error:", profileError.message);
-        alert('Compte créé ! Vérifie tes emails pour confirmer.');
+        await supabase.from('profiles').insert([
+          { id: data.user.id, username: username, avatar_url: null }
+        ]);
+        alert('Archive created! Please verify your email.');
       }
     } else {
-      // Connexion classique
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) alert(error.message);
     }
@@ -47,27 +36,31 @@ export default function Auth() {
   };
 
   return (
-    <div className="w-full max-w-sm mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="text-center space-y-2">
-        <h1 className="text-3xl font-black italic tracking-tighter text-white uppercase leading-none">
-          PANDAS OF TOMORROWLAND
+    <div className="w-full max-w-sm mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-1000 py-10 px-4">
+      {/* HEADER - Style Grimoire */}
+      <div className="text-center space-y-3">
+        <h1 className="text-4xl font-black italic tracking-tighter text-[#2F4F4F] uppercase leading-none drop-shadow-sm">
+          PANDAS <br/> ARCHIVE
         </h1>
-        <p className="text-[10px] font-bold text-[#DFFF5E] uppercase tracking-[0.3em]">
-          {isRegister ? 'Join the crew' : 'Welcome back raver'}
-        </p>
+        <div className="flex items-center justify-center gap-3">
+            <div className="h-[1px] w-8 bg-[#2F4F4F]/10"></div>
+            <p className="text-[10px] font-black text-[#778899] uppercase tracking-[0.4em]">
+              {isRegister ? 'Join the legacy' : 'Access the hub'}
+            </p>
+            <div className="h-[1px] w-8 bg-[#2F4F4F]/10"></div>
+        </div>
       </div>
 
-      <form onSubmit={handleAuth} className="space-y-4">
+      <form onSubmit={handleAuth} className="space-y-5">
         <div className="space-y-3">
-          {/* CHAMP SURNOM : Apparaît uniquement si isRegister est vrai */}
           {isRegister && (
-            <div className="relative animate-in zoom-in-95 duration-300">
+            <div className="relative animate-in zoom-in-95 duration-500">
               <input
                 type="text"
-                placeholder="YOUR NICKNAME (EX: DJ POTTER)"
+                placeholder="YOUR NICKNAME"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full bg-[#141417] border border-[#DFFF5E]/30 rounded-2xl p-4 text-xs font-bold text-[#DFFF5E] outline-none focus:border-[#DFFF5E] transition-all placeholder:text-[#DFFF5E]/20"
+                className="w-full bg-white/40 border border-[#2F4F4F]/20 rounded-2xl p-5 text-[11px] font-black text-[#2F4F4F] outline-none focus:border-[#2F4F4F] transition-all placeholder:text-[#778899]/30 uppercase tracking-widest shadow-sm"
                 required={isRegister}
               />
             </div>
@@ -79,44 +72,48 @@ export default function Auth() {
               placeholder="EMAIL ADDRESS"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-[#141417] border border-white/5 rounded-2xl p-4 text-xs font-bold text-white outline-none focus:border-[#DFFF5E]/50 transition-all placeholder:text-white/10"
+              className="w-full bg-white/40 border border-[#778899]/10 rounded-2xl p-5 text-[11px] font-black text-[#2F4F4F] outline-none focus:border-[#2F4F4F]/40 transition-all placeholder:text-[#778899]/30 uppercase tracking-widest shadow-sm"
               required
             />
           </div>
+          
           <div className="relative group">
             <input
               type="password"
               placeholder="PASSWORD"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-[#141417] border border-white/5 rounded-2xl p-4 text-xs font-bold text-white outline-none focus:border-[#DFFF5E]/50 transition-all placeholder:text-white/10"
+              className="w-full bg-white/40 border border-[#778899]/10 rounded-2xl p-5 text-[11px] font-black text-[#2F4F4F] outline-none focus:border-[#2F4F4F]/40 transition-all placeholder:text-[#778899]/30 uppercase tracking-widest shadow-sm"
               required
             />
           </div>
         </div>
 
+        {/* BOUTON PRINCIPAL - Couleur Ardoise Pleine */}
         <button
           type="submit"
           disabled={loading}
-          className="w-full py-4 rounded-2xl bg-[#DFFF5E] text-black font-black uppercase tracking-widest text-xs shadow-[0_0_30px_rgba(223,255,94,0.1)] active:scale-95 transition-all disabled:opacity-50"
+          className="w-full py-5 rounded-[2rem] bg-[#2F4F4F] text-[#F5F5DC] font-black uppercase tracking-[0.3em] text-[10px] shadow-xl shadow-[#2F4F4F]/20 active:scale-[0.98] transition-all disabled:opacity-50"
         >
-          {loading ? 'WAITING...' : isRegister ? 'CREATE ACCOUNT' : 'ENTER HUB'}
+          {loading ? 'Consulting...' : isRegister ? 'Create Archive' : 'Identify'}
         </button>
       </form>
 
+      {/* SWITCHER */}
       <div className="text-center">
         <button
           onClick={() => setIsRegister(!isRegister)}
-          className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] hover:text-[#DFFF5E] transition-colors"
+          className="text-[9px] font-black text-[#778899] uppercase tracking-[0.2em] hover:text-[#2F4F4F] transition-colors border-b border-[#778899]/20 pb-1"
         >
           {isRegister ? 'Already in? Log in' : 'No account? Register here'}
         </button>
       </div>
 
-      <div className="pt-8 flex justify-center opacity-10">
-        <div className="w-12 h-[1px] bg-white"></div>
-        <div className="mx-4 text-[10px] text-white font-black italic tracking-widest">2026</div>
-        <div className="w-12 h-[1px] bg-white"></div>
+      {/* FOOTER - Date Signature */}
+      <div className="pt-12 flex items-center justify-center opacity-30">
+        <div className="w-8 h-[1px] bg-[#2F4F4F]"></div>
+        <div className="mx-4 text-[9px] text-[#2F4F4F] font-black italic tracking-[0.5em]">MMXXVI</div>
+        <div className="w-8 h-[1px] bg-[#2F4F4F]"></div>
       </div>
     </div>
   );

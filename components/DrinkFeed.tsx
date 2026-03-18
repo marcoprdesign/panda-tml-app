@@ -5,6 +5,7 @@ import { supabase } from '@/supabase';
 export default function DrinkFeed() {
   const [drinks, setDrinks] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const fetchDrinks = async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -16,6 +17,7 @@ export default function DrinkFeed() {
       .order('created_at', { ascending: false });
 
     if (drinksData) setDrinks(drinksData);
+    setLoading(false);
   };
 
   useEffect(() => { fetchDrinks(); }, []);
@@ -28,7 +30,6 @@ export default function DrinkFeed() {
     const drink = drinks.find(d => d.id === drinkId);
     const isLiked = drink?.drink_likes?.some((l: any) => l.user_id === userId);
 
-    // Mise à jour optimiste (immédiate sur l'écran)
     setDrinks(prevDrinks => prevDrinks.map(d => {
       if (d.id === drinkId) {
         return {
@@ -41,7 +42,6 @@ export default function DrinkFeed() {
       return d;
     }));
 
-    // Action en base de données
     if (isLiked) {
       await supabase.from('drink_likes').delete().eq('user_id', userId).eq('drink_id', drinkId);
     } else {
@@ -49,58 +49,74 @@ export default function DrinkFeed() {
     }
   };
 
+  if (loading) return (
+    <div className="flex justify-center py-10">
+      <div className="w-5 h-5 border-2 border-[#778899]/20 border-t-[#2F4F4F] rounded-full animate-spin" />
+    </div>
+  );
+
   return (
-    <div className="space-y-10 pb-24">
+    /* Écart réduit : passage de space-y-12 à space-y-6 */
+    <div className="space-y-6 pb-24 animate-in fade-in slide-in-from-bottom-6 duration-700">
       {drinks.map((drink) => {
         const isLiked = drink.drink_likes?.some((l: any) => l.user_id === userId);
         const count = drink.drink_likes?.length || 0;
         
         return (
-          <div key={drink.id} className="relative aspect-[4/5] rounded-[2.5rem] overflow-hidden border border-white/5 shadow-2xl bg-[#141417]">
-            <img src={getUrl('drinks', drink.photo_url)} className="w-full h-full object-cover" alt="Drink" />
+          <div key={drink.id} className="relative aspect-[4/5] rounded-[2.8rem] overflow-hidden border border-[#778899]/20 shadow-lg bg-white/20 group animate-in fade-in slide-in-from-bottom-6">
             
-            {/* --- SINGLE PILL TOP LEFT --- */}
-            <div className="absolute top-4 left-4 flex items-center gap-2.5 bg-black/60 backdrop-blur-md p-1.5 pr-4 rounded-[1.2rem] border border-white/10 shadow-lg">
-              {/* Avatar */}
-              <div className="w-9 h-9 rounded-full overflow-hidden border border-[#DFFF5E]/50 flex-shrink-0">
+            {/* IMAGE DE FOND */}
+            <img 
+              src={getUrl('drinks', drink.photo_url)} 
+              className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" 
+              alt="Drink Archive" 
+            />
+            
+            {/* OVERLAY GRADIENT */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#F5F5DC]/60 via-transparent to-transparent opacity-80" />
+
+            {/* --- PILL UNIQUE (Top Left) --- */}
+            <div className="absolute top-5 left-5 flex items-center gap-3 bg-[#F5F5DC]/85 backdrop-blur-xl p-1.5 pr-6 rounded-[2.2rem] border border-white shadow-lg">
+              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#2F4F4F] shadow-sm bg-white">
                 {drink.profiles?.avatar_url && (
                   <img src={getUrl('avatars', drink.profiles.avatar_url)} className="w-full h-full object-cover" />
                 )}
               </div>
               
-              {/* Infos Texte */}
-              <div className="flex flex-col gap-0.5">
-                {/* Ligne 1 : Nom • Heure */}
-                <div className="flex items-center gap-1.5">
-                  <span className="text-[10px] font-black text-white uppercase tracking-tight leading-none">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-black text-[#2F4F4F] uppercase tracking-widest leading-none">
                     {drink.profiles?.username}
                   </span>
-                  <span className="text-[10px] text-white/30 leading-none">•</span>
-                  <span className="text-[8px] font-bold text-white/40 uppercase leading-none">
-                    {new Date(drink.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  <span className="text-[7px] font-bold text-[#778899] uppercase tracking-widest leading-none">
+                    • {new Date(drink.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
-                
-                {/* Ligne 2 : Drink Type */}
-                <span className="text-[9px] font-black text-[#DFFF5E] uppercase tracking-widest leading-none">
+                <span className="text-[9px] font-black text-[#2F4F4F]/60 uppercase tracking-[0.2em] leading-none">
                   {drink.drink_type}
                 </span>
               </div>
             </div>
 
-            {/* --- LIKE BUTTON --- */}
+            {/* --- LIKE BUTTON PILL (Bottom Left) --- */}
             <div className="absolute bottom-6 left-6">
               <button 
                 onClick={() => handleLike(drink.id)}
-                className={`flex items-center gap-2 backdrop-blur-xl p-2 px-4 rounded-2xl border transition-all duration-300 active:scale-95 shadow-lg
-                  ${isLiked ? 'bg-[#DFFF5E] border-[#DFFF5E]' : 'bg-black/60 border-white/10'}`}
+                className={`flex items-center gap-3 backdrop-blur-2xl p-3 px-6 rounded-[1.8rem] border transition-all duration-500 active:scale-90 shadow-xl
+                  ${isLiked 
+                    ? 'bg-[#2F4F4F] border-[#2F4F4F] text-[#F5F5DC]' 
+                    : 'bg-white/80 border-white text-[#2F4F4F]'}`}
               >
-                <span className={`text-sm transition-transform ${isLiked ? 'scale-110' : 'grayscale'}`}>❤️</span>
-                <span className={`text-[10px] font-black transition-colors ${isLiked ? 'text-black' : 'text-white'}`}>
+                <span className={`text-sm transition-all duration-500 ${isLiked ? 'grayscale-0 scale-110' : 'grayscale opacity-40'}`}>
+                  ❤️
+                </span>
+                <span className="text-[11px] font-black uppercase tracking-widest">
                   {count}
                 </span>
               </button>
             </div>
+
+            {/* LE "TRUC BIZARRE" A ÉTÉ RETIRÉ D'ICI */}
           </div>
         );
       })}

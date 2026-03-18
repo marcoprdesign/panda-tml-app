@@ -15,7 +15,6 @@ import {
 } from 'chart.js';
 import { Line, Bar } from 'react-chartjs-2';
 
-// 1. Enregistrement des composants
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -31,61 +30,65 @@ ChartJS.register(
 export default function DrinkCharts() {
   const [lineData, setLineData] = useState<any>(null);
   const [barData, setBarData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchChartData();
   }, []);
 
   const fetchChartData = async () => {
-    // Récupération des données avec jointure profil
     const { data: drinks, error } = await supabase
       .from('drinks')
       .select('created_at, user_id, profiles(username)')
       .order('created_at', { ascending: true });
 
-    if (error || !drinks || drinks.length === 0) return;
+    if (error || !drinks || drinks.length === 0) {
+      setLoading(false);
+      return;
+    }
 
-    // --- PRÉPARATION DES DONNÉES ---
     const userStats: any = {};
-    const timelineLabels: string[] = [];
-    
-    // On groupe les données par utilisateur
     drinks.forEach((d: any) => {
       const name = d.profiles?.username || 'Panda';
-      const time = new Date(d.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      
-      if (!userStats[name]) {
-        userStats[name] = { count: 0, history: [] };
-      }
+      if (!userStats[name]) userStats[name] = { count: 0 };
       userStats[name].count += 1;
-      timelineLabels.push(time);
     });
 
     const usernames = Object.keys(userStats);
 
-    // --- CONFIG BAR CHART (Totaux) ---
+    // --- NOUVELLE PALETTE ARCHIVE (Muted & Elegant) ---
+    const palette = {
+      slate: '#2F4F4F',      // Ardoise Sombre
+      blue: '#778899',       // Gris Bleu
+      sage: '#8F9779',       // Vert Sauge éteint
+      rose: '#B29494',       // Vieux Rose
+      ochre: '#C2A385'       // Ocre doux
+    };
+
+    const chartColors = [palette.slate, palette.sage, palette.rose, palette.ochre, palette.blue];
+
+    // --- CONFIG BAR CHART ---
     const sortedUsers = usernames.sort((a, b) => userStats[b].count - userStats[a].count);
-    
     setBarData({
       labels: sortedUsers,
       datasets: [{
-        label: 'Drinks',
+        label: 'Total Drinks',
         data: sortedUsers.map(u => userStats[u].count),
-        backgroundColor: '#DFFF5E',
-        borderRadius: 8,
+        backgroundColor: palette.slate, 
+        borderRadius: 20,
+        hoverBackgroundColor: '#3D6666',
+        barThickness: 12,
       }]
     });
 
-    // --- CONFIG LINE CHART (Évolution cumulative) ---
-    // On crée une timeline simplifiée (max 15 points pour la lisibilité)
-    const datasets = usernames.map((name, index) => {
+    // --- CONFIG LINE CHART ---
+    const lineDatasets = usernames.map((name, index) => {
       let cumulative = 0;
-      const colors = ['#DFFF5E', '#FF5E5E', '#5EBFFF', '#FF5EDF', '#5EFF8B'];
-      const color = colors[index % colors.length];
-
-      // On map chaque drink pour créer une courbe montante
+      const color = chartColors[index % chartColors.length];
+      
       const dataPoints = drinks.map((d: any) => {
-        if ((d.profiles?.username || 'Panda') === name) cumulative++;
+        const drinkUser = d.profiles?.username || 'Panda';
+        if (drinkUser === name) cumulative++;
         return cumulative;
       });
 
@@ -93,17 +96,19 @@ export default function DrinkCharts() {
         label: name,
         data: dataPoints,
         borderColor: color,
-        backgroundColor: color + '22', // Transparence
+        backgroundColor: color + '10', // Remplissage ultra-léger
         fill: true,
         tension: 0.4,
-        pointRadius: 0
+        pointRadius: 0,
+        borderWidth: 2.5
       };
     });
 
     setLineData({
-      labels: drinks.map((_, i) => i), // Index simple pour l'axe X
-      datasets: datasets
+      labels: drinks.map((_, i) => i),
+      datasets: lineDatasets
     });
+    setLoading(false);
   };
 
   const options: any = {
@@ -112,40 +117,65 @@ export default function DrinkCharts() {
     plugins: {
       legend: {
         position: 'bottom' as const,
-        labels: { color: 'rgba(255,255,255,0.5)', font: { size: 10, weight: 'bold' }, usePointStyle: true }
+        labels: { 
+          color: '#2F4F4F', 
+          font: { size: 9, weight: '900' }, 
+          usePointStyle: true,
+          pointStyle: 'rectRounded',
+          padding: 20,
+          boxWidth: 8
+        }
       },
       tooltip: {
-        mode: 'index',
-        intersect: false,
+        backgroundColor: '#F5F5DC', 
+        titleColor: '#2F4F4F',
+        bodyColor: '#2F4F4F',
+        titleFont: { size: 10, weight: '900' },
+        bodyFont: { size: 10 },
+        borderColor: '#77889933', 
+        borderWidth: 1,
+        displayColors: true,
+        padding: 10,
+        cornerRadius: 12
       }
     },
     scales: {
       y: { 
-        grid: { color: 'rgba(255,255,255,0.05)' },
-        ticks: { color: 'rgba(255,255,255,0.3)' } 
+        grid: { color: 'rgba(47, 79, 79, 0.05)' },
+        ticks: { color: '#778899', font: { size: 9, weight: '700' } } 
       },
       x: { 
         grid: { display: false },
-        ticks: { display: false } // On cache les labels X trop denses
+        ticks: { display: false } 
       }
     }
   };
 
+  if (loading) return (
+    <div className="flex justify-center py-10 opacity-20 text-[9px] font-black uppercase tracking-widest">
+      Drawing analytics...
+    </div>
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-1000">
       {lineData && (
-        <div className="bg-[#141417] p-5 rounded-[2rem] border border-white/5">
-          <h3 className="text-[10px] font-black text-white/20 uppercase tracking-widest mb-4">Mindful Overview</h3>
-          <div className="h-64">
+        <div className="bg-white/40 p-6 rounded-[2.5rem] border border-[#778899]/20 shadow-sm backdrop-blur-sm">
+          <h3 className="text-[10px] font-black text-[#2F4F4F] uppercase tracking-[0.2em] mb-6 pl-2">
+            Hydration Timeline
+          </h3>
+          <div className="h-60">
             <Line data={lineData} options={options} />
           </div>
         </div>
       )}
 
       {barData && (
-        <div className="bg-[#141417] p-5 rounded-[2rem] border border-white/5">
-          <h3 className="text-[10px] font-black text-white/20 uppercase tracking-widest mb-4">Drinks per Panda</h3>
-          <div className="h-64">
+        <div className="bg-white/40 p-6 rounded-[2.5rem] border border-[#778899]/20 shadow-sm backdrop-blur-sm">
+          <h3 className="text-[10px] font-black text-[#2F4F4F] uppercase tracking-[0.2em] mb-6 pl-2">
+            Panda Rankings
+          </h3>
+          <div className="h-60">
             <Bar data={barData} options={options} />
           </div>
         </div>

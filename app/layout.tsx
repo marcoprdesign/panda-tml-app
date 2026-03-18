@@ -1,25 +1,35 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "TML HUB",
-  description: "Private Festival Hub",
-  // Empêche la détection auto des numéros de téléphone qui peuvent casser le style
+  title: "Pandas Of Tomorrowland",
+  description: "Private Festival Hub - Consciencia Edition",
   formatDetection: {
     telephone: false,
   },
+  // Déclaration des icônes pour le bookmarking
+  manifest: "/manifest.json",
+  icons: {
+    icon: "/icon-192.png", // Pour Android/Navigateurs
+    apple: "/apple-touch-icon.png", // Pour l'écran d'accueil iPhone
+  },
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Pandas Of Tomorrowland",
+  },
 };
 
-// C'est ici que la magie opère pour bloquer le zoom
-export const viewport = {
+// Mise à jour du viewport avec la couleur Saphir Consciencia
+export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#0A0A0C", // Assure que la barre d'état du téléphone match avec ton fond noir
+  themeColor: "#131F3B", // La barre d'état matchera ton nouveau bleu
 };
 
 export default function RootLayout({
@@ -28,8 +38,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="fr" className="bg-[#0A0A0C]">
-      <body className={`${inter.className} antialiased selection:bg-[#DFFF5E] selection:text-black`}>
+    <html lang="fr" className="bg-[#0A1121]"> 
+      <body className={`${inter.className} antialiased selection:bg-[#E7C66E] selection:text-black`}>
         {children}
       </body>
     </html>

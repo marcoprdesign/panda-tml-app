@@ -1,27 +1,67 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Ta nouvelle palette définie par les 3 couleurs prioritaires */
+  --parchment: #F5F5DC;    /* Fond principal */
+  --slate-dark: #2F4F4F;   /* Accents & Texte principal */
+  --slate-blue: #778899;   /* Éléments secondaires & Bordures */
+
+  /* Mapping pour Tailwind et le système */
+  --background: var(--parchment);
+  --foreground: var(--slate-dark);
 }
 
 @theme inline {
+  /* On expose tes couleurs pour pouvoir faire <div class="bg-parchment text-slate-dark"> */
+  --color-parchment: var(--parchment);
+  --color-slate-dark: var(--slate-dark);
+  --color-slate-blue: var(--slate-blue);
+  
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* On supprime le bloc @media (prefers-color-scheme: dark) pour garder le beige même si le téléphone est en mode sombre */
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
+/* --- PETITS AJOUTS POUR LE LOOK PREMIUM --- */
+
+@layer base {
+  /* Sélection de texte harmonisée */
+  ::selection {
+    background-color: var(--slate-dark);
+    color: var(--parchment);
+  }
+
+  /* Scrollbar discrète style Ardoise */
+  ::-webkit-scrollbar {
+    width: 4px;
+  }
+  ::-webkit-scrollbar-track {
+    background: var(--parchment);
+  }
+  ::-webkit-scrollbar-thumb {
+    background: var(--slate-blue);
+    border-radius: 10px;
+  }
+}
+
+@layer components {
+  /* Tu peux maintenant utiliser ces classes partout dans ton projet */
+  .card-custom {
+    @apply bg-white/30 border border-[#778899]/20 backdrop-blur-md rounded-[2.5rem] shadow-sm;
+  }
+  
+  .input-custom {
+    @apply bg-white/50 border border-[#778899]/30 rounded-2xl px-5 py-4 
+           focus:outline-none focus:ring-2 focus:ring-[#2F4F4F]/20 focus:border-[#2F4F4F]
+           placeholder-[#778899]/50 transition-all text-[#2F4F4F];
+  }
+}

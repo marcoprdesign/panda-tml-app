@@ -2,9 +2,12 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/supabase';
 
-export default function Avatar({ url, uid, onUpload }: { url: string | null, uid: string, onUpload: (url: string) => void }) {
+export default function Avatar({ url, uid, onUpload, username }: { url: string | null, uid: string, onUpload: (url: string) => void, username?: string }) {
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+
+  // Récupérer l'initiale (ex: "P" pour "Potter")
+  const initial = username ? username.charAt(0).toUpperCase() : 'P';
 
   useEffect(() => {
     if (url) downloadImage(url);
@@ -38,20 +41,40 @@ export default function Avatar({ url, uid, onUpload }: { url: string | null, uid
   }
 
   return (
-    <div className="relative w-full h-full group">
-      <label className="cursor-pointer w-full h-full block relative rounded-full overflow-hidden bg-[#141417]" htmlFor="single">
+    /* h-full w-full + aspect-square = Cercle garanti */
+    <div className="relative w-full h-full aspect-square flex items-center justify-center">
+      <label 
+        className="cursor-pointer w-full h-full block relative rounded-full overflow-hidden bg-[#F5F5DC] border border-[#778899]/20 shadow-inner" 
+        htmlFor="single"
+      >
         {avatarUrl ? (
-          <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+          <img 
+            src={avatarUrl} 
+            alt="Avatar" 
+            className="absolute inset-0 w-full h-full object-cover rounded-full" 
+          />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-xl bg-[#141417]">👤</div>
+          /* Placeholder avec l'initiale du pseudo */
+          <div className="absolute inset-0 w-full h-full flex items-center justify-center text-sm font-black italic text-[#2F4F4F]/60 bg-[#F5F5DC]">
+            {initial}
+          </div>
         )}
+
         {uploading && (
-          <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-            <div className="w-5 h-5 border-2 border-[#DFFF5E] border-t-transparent rounded-full animate-spin"></div>
+          <div className="absolute inset-0 bg-[#2F4F4F]/60 flex items-center justify-center backdrop-blur-sm rounded-full">
+            <div className="w-4 h-4 border-2 border-[#F5F5DC] border-t-transparent rounded-full animate-spin"></div>
           </div>
         )}
       </label>
-      <input style={{ visibility: 'hidden', position: 'absolute' }} type="file" id="single" accept="image/*" onChange={uploadAvatar} disabled={uploading} />
+      
+      <input 
+        style={{ visibility: 'hidden', position: 'absolute' }} 
+        type="file" 
+        id="single" 
+        accept="image/*" 
+        onChange={uploadAvatar} 
+        disabled={uploading} 
+      />
     </div>
   );
 }

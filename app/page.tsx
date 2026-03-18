@@ -9,12 +9,12 @@ import DrinkFeed from '@/components/DrinkFeed';
 import DrinkCharts from '@/components/DrinkCharts';
 import Leaderboard from '@/components/Leaderboard';
 import FlunkyBall from '@/components/FlunkyBall';
-import Schedule from '@/components/Schedule'; // Nouvel import
+import Schedule from '@/components/Schedule'; 
 
 export default function Home() {
   const [session, setSession] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState('activity'); // activity | schedule | flunky | calc
+  const [activeTab, setActiveTab] = useState('activity'); 
   const [subTab, setSubTab] = useState('feed');
   const [loading, setLoading] = useState(true);
 
@@ -37,66 +37,87 @@ export default function Home() {
   }
 
   if (loading) return (
-    <div className="min-h-screen bg-[#0A0A0C] flex items-center justify-center text-[#DFFF5E] font-black italic tracking-widest animate-pulse uppercase text-xs">
-      PANDAS OF TOMORROWLAND...
+    <div className="min-h-screen bg-[#F5F5DC] flex items-center justify-center text-[#2F4F4F] font-black italic tracking-[0.3em] animate-pulse uppercase text-[10px]">
+      LOADING THE SCROLL...
     </div>
   );
 
   if (!session) return (
-    <main className="min-h-screen bg-[#0A0A0C] p-6 flex flex-col justify-center">
+    <main className="min-h-screen bg-[#F5F5DC] p-6 flex flex-col justify-center">
       <Auth />
     </main>
   );
 
   return (
-    <main className="min-h-screen bg-[#0A0A0C] text-white flex flex-col">
+    <main className="min-h-screen bg-[#F5F5DC] text-[#2F4F4F] flex flex-col font-sans antialiased">
       
-      {/* HEADER FIXE */}
-      <header className="px-5 py-4 flex justify-between items-center bg-[#0A0A0C]/90 backdrop-blur-md sticky top-0 z-50 border-b border-white/5">
-        <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-full border border-white/10 overflow-hidden bg-black relative shadow-lg">
-                <Avatar 
-                  uid={session.user.id} 
-                  url={profile?.avatar_url} 
-                  onUpload={(url) => setProfile({ ...profile, avatar_url: url })} 
-                />
-            </div>
-            <div className="flex flex-col">
-              <h1 className="text-lg font-black italic tracking-tighter uppercase leading-none">PANDAS OF TOMORROWLAND</h1>
-              <span className="text-[7px] font-bold text-[#DFFF5E] uppercase tracking-[0.2em] mt-1">Tomorrowland 2026</span>
-            </div>
-        </div>
-        <button 
-          onClick={() => supabase.auth.signOut()} 
-          className="text-[8px] font-black text-white/30 uppercase tracking-widest border border-white/10 px-3 py-1.5 rounded-full active:bg-white/5 transition-all"
-        >
-          Logout
-        </button>
-      </header>
+      {/* HEADER */}
+  <header className="px-6 py-6 flex justify-between items-center bg-[#F5F5DC]/90 backdrop-blur-md sticky top-0 z-50 border-b border-[#778899]/20">
+  <div className="flex items-center gap-3 min-w-0 flex-1">
+    
+    {/* Avatar - Toujours parfaitement rond et fixe */}
+    <div className="w-10 h-10 flex-shrink-0 aspect-square rounded-full border-2 border-[#2F4F4F] overflow-hidden bg-white shadow-sm flex items-center justify-center">
+      <Avatar 
+        uid={session.user.id} 
+        url={profile?.avatar_url} 
+        username={profile?.username}
+        onUpload={(url) => setProfile({ ...profile, avatar_url: url })} 
+      />
+    </div>
+    
+    <div className="flex flex-col text-left min-w-0">
+      {/* TITRE : Retrait de leading-none et ajout de leading-tight pour le multi-ligne */}
+      <h1 className="text-lg font-black italic tracking-tighter uppercase leading-[0.9] text-[#2F4F4F] break-words">
+        PANDAS OF <br className="xs:hidden" /> TOMORROWLAND
+      </h1>
+      
+      {/* Statut Actif */}
+      <div className="flex items-center gap-1.5 mt-2">
+        <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#8F9779] opacity-75"></span>
+          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#8F9779]"></span>
+        </span>
+        <span className="text-[8px] font-black text-[#778899] uppercase tracking-[0.3em] text-left leading-none">
+          Currently Online
+        </span>
+      </div>
+    </div>
+  </div>
+  
+  {/* Bouton Exit - Garde sa place à droite */}
+  <button 
+    onClick={() => supabase.auth.signOut()} 
+    className="flex-shrink-0 text-[9px] font-black text-[#778899]/60 uppercase tracking-widest border border-[#778899]/30 px-3 py-1.5 rounded-full active:scale-95 transition-all ml-4"
+  >
+    Exit
+  </button>
+</header>
 
-      {/* ZONE DE CONTENU DYNAMIQUE */}
-      <div className="flex-1 overflow-y-auto px-5 pb-32">
+      {/* ZONE DE CONTENU */}
+      <div className="flex-1 overflow-y-auto px-5 pb-36">
         
-        {/* ONGLET ACTIVITY (Feed & Ranking) */}
         {activeTab === 'activity' && (
-          <div className="mt-6 space-y-6 animate-in fade-in duration-500">
-            <div className="flex p-1 bg-[#141417] rounded-xl border border-white/5 shadow-inner">
+          <div className="mt-6 space-y-8 animate-in fade-in duration-500">
+            
+            {/* Switcher Ardoise */}
+            <div className="flex p-1 bg-[#778899]/10 rounded-2xl border border-[#778899]/20 shadow-inner">
               <button 
                 onClick={() => setSubTab('feed')} 
-                className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${subTab === 'feed' ? 'bg-[#DFFF5E] text-black shadow-md shadow-[#DFFF5E]/10' : 'text-white/20'}`}
+                className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 ${subTab === 'feed' ? 'bg-[#2F4F4F] text-[#F5F5DC] shadow-md' : 'text-[#778899]'}`}
               >
-                Feed
+                Journal
               </button>
               <button 
                 onClick={() => setSubTab('ranking')} 
-                className={`flex-1 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${subTab === 'ranking' ? 'bg-[#DFFF5E] text-black shadow-md shadow-[#DFFF5E]/10' : 'text-white/20'}`}
+                className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 ${subTab === 'ranking' ? 'bg-[#2F4F4F] text-[#F5F5DC] shadow-md' : 'text-[#778899]'}`}
               >
                 Ranking
               </button>
             </div>
             
             {subTab === 'feed' ? (
-              <div className="space-y-8 animate-in slide-in-from-bottom-4">
+              <div className="space-y-8">
+                {/* Plus de wrapper "bloc dans un bloc" ici */}
                 <PostDrink userProfile={profile} />
                 <DrinkFeed />
               </div>
@@ -109,68 +130,32 @@ export default function Home() {
           </div>
         )}
 
-        {/* ONGLET LINEUP (Nouveau) */}
-        {activeTab === 'schedule' && (
-          <div className="mt-6 animate-in slide-in-from-bottom-4 duration-500">
-            <Schedule />
-          </div>
-        )}
-
-        {/* ONGLET FLUNKY BALL */}
-        {activeTab === 'flunky' && (
-          <div className="mt-6 animate-in slide-in-from-bottom-4 duration-500">
-            <FlunkyBall />
-          </div>
-        )}
-
-        {/* ONGLET CALCULATOR (Pearls) */}
-        {activeTab === 'calc' && (
-          <div className="mt-6 animate-in slide-in-from-bottom-4 duration-500">
-            <Calculator />
-          </div>
-        )}
+        {activeTab === 'schedule' && <div className="mt-6"><Schedule /></div>}
+        {activeTab === 'flunky' && <div className="mt-6"><FlunkyBall /></div>}
+        {activeTab === 'calc' && <div className="mt-6"><Calculator /></div>}
       </div>
 
-      {/* NAVIGATION BAR FLOTTANTE (4 Boutons) */}
-      <nav className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[94%] max-w-sm bg-[#1A1A1E]/95 backdrop-blur-3xl border border-white/10 p-1.5 rounded-[2.2rem] flex justify-between items-center shadow-2xl z-50">
-        
-        {/* Feed */}
-        <button 
-          onClick={() => setActiveTab('activity')} 
-          className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-[1.8rem] transition-all ${activeTab === 'activity' ? 'bg-[#DFFF5E] text-black' : 'text-white/20'}`}
-        >
-          <span className="text-lg leading-none">📸</span>
-          <span className="text-[7px] font-black uppercase tracking-widest">Feed</span>
-        </button>
-
-        {/* Schedule */}
-        <button 
-          onClick={() => setActiveTab('schedule')} 
-          className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-[1.8rem] transition-all ${activeTab === 'schedule' ? 'bg-[#DFFF5E] text-black' : 'text-white/20'}`}
-        >
-          <span className="text-lg leading-none">📅</span>
-          <span className="text-[7px] font-black uppercase tracking-widest">Lineup</span>
-        </button>
-
-        {/* Flunky */}
-        <button 
-          onClick={() => setActiveTab('flunky')} 
-          className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-[1.8rem] transition-all ${activeTab === 'flunky' ? 'bg-[#DFFF5E] text-black' : 'text-white/20'}`}
-        >
-          <span className="text-lg leading-none">⚽️</span>
-          <span className="text-[7px] font-black uppercase tracking-widest">Flunky</span>
-        </button>
-
-        {/* Pearls */}
-        <button 
-          onClick={() => setActiveTab('calc')} 
-          className={`flex-1 flex flex-col items-center justify-center gap-1 py-3 rounded-[1.8rem] transition-all ${activeTab === 'calc' ? 'bg-[#DFFF5E] text-black' : 'text-white/20'}`}
-        >
-          <span className="text-lg leading-none">💎</span>
-          <span className="text-[7px] font-black uppercase tracking-widest">Pearls</span>
-        </button>
+      {/* NAVIGATION BAR FLOTTANTE */}
+      <nav className="fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-[#2F4F4F] border border-white/10 p-2 rounded-[2.5rem] flex justify-between items-center shadow-2xl z-50">
+        {[
+          { id: 'activity', icon: '📜', label: 'Feed' },
+          { id: 'schedule', icon: '🏛️', label: 'Lineup' },
+          { id: 'flunky', icon: '🏆', label: 'Game' },
+          { id: 'calc', icon: '💎', label: 'Pearls' }
+        ].map((tab) => (
+          <button 
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)} 
+            className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-3.5 rounded-[2.2rem] transition-all duration-300
+              ${activeTab === tab.id 
+                ? 'bg-[#F5F5DC] text-[#2F4F4F] shadow-lg scale-105' 
+                : 'text-[#F5F5DC]/40'}`}
+          >
+            <span className="text-xl leading-none">{tab.icon}</span>
+            <span className="text-[7px] font-black uppercase tracking-[0.2em]">{tab.label}</span>
+          </button>
+        ))}
       </nav>
-      
     </main>
   );
 }
