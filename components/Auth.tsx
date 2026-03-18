@@ -7,13 +7,22 @@ export default function Auth() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
+  const [secretKey, setSecretKey] = useState(''); 
   const [isRegister, setIsRegister] = useState(false);
+
+  const REQUIRED_KEY = "KdbYZ827p_mq75";
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     
     if (isRegister) {
+      if (secretKey !== REQUIRED_KEY) {
+        alert("❌ INVALID SECRET KEY. ACCESS DENIED.");
+        setLoading(false);
+        return;
+      }
+
       const { data, error: signUpError } = await supabase.auth.signUp({ 
         email, 
         password,
@@ -37,7 +46,7 @@ export default function Auth() {
 
   return (
     <div className="w-full max-w-sm mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-1000 py-10 px-4">
-      {/* HEADER - Style Grimoire */}
+      {/* HEADER */}
       <div className="text-center space-y-3">
         <h1 className="text-4xl font-black italic tracking-tighter text-[#2F4F4F] uppercase leading-none drop-shadow-sm">
           PANDAS <br/> ARCHIVE
@@ -53,6 +62,7 @@ export default function Auth() {
 
       <form onSubmit={handleAuth} className="space-y-5">
         <div className="space-y-3">
+          {/* 1. NICKNAME (Register only) */}
           {isRegister && (
             <div className="relative animate-in zoom-in-95 duration-500">
               <input
@@ -66,6 +76,7 @@ export default function Auth() {
             </div>
           )}
 
+          {/* 2. EMAIL */}
           <div className="relative group">
             <input
               type="email"
@@ -77,6 +88,7 @@ export default function Auth() {
             />
           </div>
           
+          {/* 3. PASSWORD */}
           <div className="relative group">
             <input
               type="password"
@@ -87,9 +99,22 @@ export default function Auth() {
               required
             />
           </div>
+
+          {/* 4. SECRET KEY (Register only - Last field) */}
+          {isRegister && (
+            <div className="relative animate-in slide-in-from-top-2 duration-500">
+              <input
+                type="text"
+                placeholder="SECRET ACCESS KEY"
+                value={secretKey}
+                onChange={(e) => setSecretKey(e.target.value)}
+                className="w-full bg-[#2F4F4F]/5 border-2 border-[#2F4F4F]/30 rounded-2xl p-5 text-[11px] font-black text-[#2F4F4F] outline-none focus:border-[#2F4F4F] transition-all placeholder:text-[#2F4F4F]/20 uppercase tracking-[0.3em] shadow-inner"
+                required={isRegister}
+              />
+            </div>
+          )}
         </div>
 
-        {/* BOUTON PRINCIPAL - Couleur Ardoise Pleine */}
         <button
           type="submit"
           disabled={loading}
@@ -109,7 +134,7 @@ export default function Auth() {
         </button>
       </div>
 
-      {/* FOOTER - Date Signature */}
+      {/* FOOTER */}
       <div className="pt-12 flex items-center justify-center opacity-30">
         <div className="w-8 h-[1px] bg-[#2F4F4F]"></div>
         <div className="mx-4 text-[9px] text-[#2F4F4F] font-black italic tracking-[0.5em]">MMXXVI</div>

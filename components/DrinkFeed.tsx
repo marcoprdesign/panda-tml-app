@@ -49,6 +49,32 @@ export default function DrinkFeed() {
     }
   };
 
+  // NOUVELLE FONCTION DE SUPPRESSION
+  const handleDelete = async (drinkId: string) => {
+  const confirmed = window.confirm("Delete this memory forever?");
+  if (!confirmed) return;
+
+  // On lance la suppression dans Supabase
+  const { error } = await supabase
+    .from('drinks')
+    .delete()
+    .eq('id', drinkId) // On cible le post précis
+    .eq('user_id', userId); // Sécurité supplémentaire : l'user doit être le propriétaire
+
+  if (error) {
+    console.error("Erreur Supabase:", error.message);
+    alert("Error: " + error.message);
+  } else {
+    // Si OK, on retire du flux local
+    setDrinks(prev => prev.filter(d => d.id !== drinkId));
+    
+    // Optionnel : Si tu veux que le Leaderboard se mette à jour immédiatement 
+    // sans attendre le prochain refresh, il faudra peut-être déclencher 
+    // un rafraîchissement global ou utiliser un "State" partagé.
+    // window.location.reload(); // Solution radicale mais efficace pour le leaderboard
+  }
+};
+
   if (loading) return (
     <div className="flex justify-center py-10">
       <div className="w-5 h-5 border-2 border-[#778899]/20 border-t-[#2F4F4F] rounded-full animate-spin" />
@@ -56,10 +82,10 @@ export default function DrinkFeed() {
   );
 
   return (
-    /* Écart réduit : passage de space-y-12 à space-y-6 */
     <div className="space-y-6 pb-24 animate-in fade-in slide-in-from-bottom-6 duration-700">
       {drinks.map((drink) => {
         const isLiked = drink.drink_likes?.some((l: any) => l.user_id === userId);
+        const isOwner = drink.user_id === userId; // Vérification de propriété
         const count = drink.drink_likes?.length || 0;
         
         return (
@@ -116,7 +142,20 @@ export default function DrinkFeed() {
               </button>
             </div>
 
-            {/* LE "TRUC BIZARRE" A ÉTÉ RETIRÉ D'ICI */}
+            {/* --- DELETE PILL (Bottom Right) --- Style identique au Like */}
+{isOwner && (
+  <div className="absolute bottom-6 right-6">
+    <button 
+      onClick={() => handleDelete(drink.id)}
+      className="flex items-center gap-3 bg-white/80 backdrop-blur-2xl p-3 px-6 rounded-[1.8rem] border border-white text-[#2F4F4F] transition-all duration-300 active:scale-90 shadow-xl hover:bg-red-50 group/del"
+    >
+      <span className="text-[11px] font-black uppercase tracking-widest opacity-60 group-hover/del:opacity-100 transition-opacity">
+        Delete 🗑️
+      </span>
+    </button>
+  </div>
+)}
+
           </div>
         );
       })}

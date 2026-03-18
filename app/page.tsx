@@ -10,6 +10,7 @@ import DrinkCharts from '@/components/DrinkCharts';
 import Leaderboard from '@/components/Leaderboard';
 import FlunkyBall from '@/components/FlunkyBall';
 import Schedule from '@/components/Schedule'; 
+import Profile from '@/components/Profile'; // 1. AJOUT DE L'IMPORT
 
 export default function Home() {
   const [session, setSession] = useState<any>(null);
@@ -52,72 +53,55 @@ export default function Home() {
     <main className="min-h-screen bg-[#F5F5DC] text-[#2F4F4F] flex flex-col font-sans antialiased">
       
       {/* HEADER */}
-  <header className="px-6 py-6 flex justify-between items-center bg-[#F5F5DC]/90 backdrop-blur-md sticky top-0 z-50 border-b border-[#778899]/20">
-  <div className="flex items-center gap-3 min-w-0 flex-1">
-    
-    {/* Avatar - Toujours parfaitement rond et fixe */}
-    <div className="w-10 h-10 flex-shrink-0 aspect-square rounded-full border-2 border-[#2F4F4F] overflow-hidden bg-white shadow-sm flex items-center justify-center">
-      <Avatar 
-        uid={session.user.id} 
-        url={profile?.avatar_url} 
-        username={profile?.username}
-        onUpload={(url) => setProfile({ ...profile, avatar_url: url })} 
-      />
-    </div>
-    
-    <div className="flex flex-col text-left min-w-0">
-      {/* TITRE : Retrait de leading-none et ajout de leading-tight pour le multi-ligne */}
-      <h1 className="text-lg font-black italic tracking-tighter uppercase leading-[0.9] text-[#2F4F4F] break-words">
-        PANDAS OF <br className="xs:hidden" /> TOMORROWLAND
-      </h1>
-      
-      {/* Statut Actif */}
-      <div className="flex items-center gap-1.5 mt-2">
-        <span className="relative flex h-1.5 w-1.5 flex-shrink-0">
-          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#8F9779] opacity-75"></span>
-          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#8F9779]"></span>
-        </span>
-        <span className="text-[8px] font-black text-[#778899] uppercase tracking-[0.3em] text-left leading-none">
-          Currently Online
-        </span>
-      </div>
-    </div>
-  </div>
-  
-  {/* Bouton Exit - Garde sa place à droite */}
-  <button 
-    onClick={() => supabase.auth.signOut()} 
-    className="flex-shrink-0 text-[9px] font-black text-[#778899]/60 uppercase tracking-widest border border-[#778899]/30 px-3 py-1.5 rounded-full active:scale-95 transition-all ml-4"
-  >
-    Exit
-  </button>
-</header>
+      <header className="px-6 py-6 flex justify-between items-center bg-[#F5F5DC]/90 backdrop-blur-md sticky top-0 z-50 border-b border-[#778899]/20">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          {/* Logo Temporaire Panda */}
+          <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-[#2F4F4F]/5 rounded-xl border border-[#2F4F4F]/10 text-xl">
+            🐼
+          </div>
+          
+          <div className="flex flex-col text-left min-w-0">
+            <h1 className="text-lg font-black italic tracking-tighter uppercase leading-[0.9] text-[#2F4F4F] break-words">
+              PANDAS OF <br className="xs:hidden" /> TOMORROWLAND
+            </h1>
+          </div>
+        </div>
+        
+        {/* AVATAR À DROITE - CLIQUEZ ICI POUR LE PROFIL */}
+        <button 
+          onClick={() => setActiveTab('profile')} 
+          className={`w-10 h-10 flex-shrink-0 rounded-full border-2 transition-all active:scale-90 overflow-hidden shadow-sm
+            ${activeTab === 'profile' ? 'border-[#2F4F4F] ring-2 ring-[#2F4F4F]/20' : 'border-[#778899]/20'}`}
+        >
+          <Avatar 
+            uid={session.user.id} 
+            url={profile?.avatar_url} 
+            username={profile?.username}
+            readonly={true} // Mode Header
+            onUpload={(url) => setProfile({ ...profile, avatar_url: url })} 
+          />
+        </button>
+      </header>
 
       {/* ZONE DE CONTENU */}
       <div className="flex-1 overflow-y-auto px-5 pb-36">
         
+        {/* ONGLET ACTIVITÉ */}
         {activeTab === 'activity' && (
           <div className="mt-6 space-y-8 animate-in fade-in duration-500">
-            
-            {/* Switcher Ardoise */}
             <div className="flex p-1 bg-[#778899]/10 rounded-2xl border border-[#778899]/20 shadow-inner">
               <button 
                 onClick={() => setSubTab('feed')} 
                 className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 ${subTab === 'feed' ? 'bg-[#2F4F4F] text-[#F5F5DC] shadow-md' : 'text-[#778899]'}`}
-              >
-                Journal
-              </button>
+              > Journal </button>
               <button 
                 onClick={() => setSubTab('ranking')} 
                 className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 ${subTab === 'ranking' ? 'bg-[#2F4F4F] text-[#F5F5DC] shadow-md' : 'text-[#778899]'}`}
-              >
-                Ranking
-              </button>
+              > Ranking </button>
             </div>
             
             {subTab === 'feed' ? (
               <div className="space-y-8">
-                {/* Plus de wrapper "bloc dans un bloc" ici */}
                 <PostDrink userProfile={profile} />
                 <DrinkFeed />
               </div>
@@ -127,6 +111,17 @@ export default function Home() {
                 <Leaderboard />
               </div>
             )}
+          </div>
+        )}
+
+        {/* 2. AJOUT DU RENDU DE L'ONGLET PROFIL */}
+        {activeTab === 'profile' && (
+          <div className="mt-6">
+            <Profile 
+              profile={profile} 
+              setProfile={setProfile} 
+              session={session} 
+            />
           </div>
         )}
 
