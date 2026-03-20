@@ -7,6 +7,7 @@ const STAGES = ['MAINSTAGE', 'FREEDOM STAGE', 'ATMOSPHERE', 'THE GREAT LIBRARY']
 export default function Schedule() {
   const [activeSubTab, setActiveSubTab] = useState<'global' | 'my'>('global');
   const [selectedDay, setSelectedDay] = useState('Friday');
+  const [searchTerm, setSearchTerm] = useState(""); // Nouvel état pour la recherche
   const [lineup, setLineup] = useState<any[]>([]);
   const [favorites, setFavorites] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
@@ -37,10 +38,17 @@ export default function Schedule() {
     );
   };
 
+  // LOGIQUE DE FILTRE AMÉLIORÉE
   const filteredLineup = lineup.filter(item => {
-    const isSameDay = item.day?.toLowerCase() === selectedDay.toLowerCase();
+    const matchesSearch = item.artist?.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                          item.stage?.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    // Si on recherche activement, on ignore le filtre du jour pour trouver l'artiste plus vite
+    const matchesDay = searchTerm.length > 0 ? true : (item.day?.toLowerCase() === selectedDay.toLowerCase());
+    
     const isFav = activeSubTab === 'my' ? favorites.includes(item.id) : true;
-    return isSameDay && isFav;
+    
+    return matchesSearch && matchesDay && isFav;
   });
 
   if (loading) return (
@@ -52,7 +60,27 @@ export default function Schedule() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-24 px-1">
       
-      {/* 1. Onglets Global / My Schedule - Palette Ardoise */}
+      {/* 1. BARRE DE RECHERCHE - Design Minimaliste Ardoise */}
+      <div className="relative group px-1">
+        <input 
+          type="text"
+          placeholder="Search Artist or Stage..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full bg-white/40 backdrop-blur-xl border border-[#778899]/20 rounded-2xl py-4 pl-12 pr-4 text-[11px] font-bold text-[#2F4F4F] placeholder-[#778899]/40 focus:outline-none focus:ring-2 focus:ring-[#2F4F4F]/5 transition-all shadow-sm"
+        />
+        <span className="absolute left-5 top-1/2 -translate-y-1/2 opacity-30 text-xs">🔍</span>
+        {searchTerm && (
+          <button 
+            onClick={() => setSearchTerm("")}
+            className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 bg-[#2F4F4F]/10 rounded-full text-[8px] flex items-center justify-center"
+          >
+            ✕
+          </button>
+        )}
+      </div>
+
+      {/* 2. Onglets Global / My Schedule */}
       <div className="flex p-1 bg-[#778899]/10 rounded-2xl border border-[#778899]/20 shadow-inner">
         <button 
           onClick={() => setActiveSubTab('global')} 
@@ -70,23 +98,25 @@ export default function Schedule() {
         </button>
       </div>
 
-      {/* 2. Filtre Jours - Style Archive */}
-      <div className="flex gap-2">
-        {['Friday', 'Saturday', 'Sunday'].map(day => (
-          <button 
-            key={day} 
-            onClick={() => setSelectedDay(day)} 
-            className={`flex-1 py-3.5 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] border transition-all duration-300
-              ${selectedDay === day 
-                ? 'bg-[#F5F5DC] text-[#2F4F4F] border-[#2F4F4F] shadow-md' 
-                : 'bg-white/30 border-[#778899]/10 text-[#778899]/50'}`}
-          >
-            {day.slice(0, 3)}
-          </button>
-        ))}
-      </div>
+      {/* 3. Filtre Jours - Masqué si on recherche pour éviter la confusion */}
+      {!searchTerm && (
+        <div className="flex gap-2 animate-in fade-in zoom-in-95 duration-300">
+          {['Friday', 'Saturday', 'Sunday'].map(day => (
+            <button 
+              key={day} 
+              onClick={() => setSelectedDay(day)} 
+              className={`flex-1 py-3.5 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] border transition-all duration-300
+                ${selectedDay === day 
+                  ? 'bg-[#F5F5DC] text-[#2F4F4F] border-[#2F4F4F] shadow-md' 
+                  : 'bg-white/30 border-[#778899]/10 text-[#778899]/50'}`}
+            >
+              {day.slice(0, 3)}
+            </button>
+          ))}
+        </div>
+      )}
 
-      {/* 3. Liste par Scènes */}
+      {/* 4. Liste par Scènes */}
       <div className="space-y-12 mt-8">
         {STAGES.map(stage => {
           const stageArtists = filteredLineup.filter(item => item.stage?.toUpperCase() === stage);
@@ -94,7 +124,6 @@ export default function Schedule() {
 
           return (
             <div key={stage} className="space-y-5">
-              {/* Séparateur de Scène épuré */}
               <div className="flex items-center gap-4 px-2">
                 <h3 className="text-[10px] font-black text-[#2F4F4F] uppercase tracking-[0.4em] whitespace-nowrap">{stage}</h3>
                 <div className="h-[1px] flex-1 bg-[#2F4F4F]/10"></div>
@@ -119,11 +148,11 @@ export default function Schedule() {
                         </div>
                         <div className={`text-[8px] font-bold uppercase tracking-widest 
                           ${isFav ? 'text-[#F5F5DC]/50' : 'text-[#778899]'}`}>
+                          {searchTerm ? `${artist.day.slice(0,3)} • ` : ''} 
                           {artist.start_time} — {artist.end_time}
                         </div>
                       </div>
                       
-                      {/* Bouton Étoile stylisé */}
                       <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs transition-all border
                         ${isFav 
                           ? 'bg-[#F5F5DC] text-[#2F4F4F] border-[#F5F5DC]' 
@@ -138,10 +167,11 @@ export default function Schedule() {
           );
         })}
 
-        {filteredLineup.length === 0 && (activeSubTab === 'my') && (
+        {/* Message si aucun résultat */}
+        {filteredLineup.length === 0 && (
           <div className="text-center py-20 bg-white/20 rounded-[2.5rem] border border-dashed border-[#778899]/20">
             <p className="text-[9px] font-black text-[#778899]/40 uppercase tracking-[0.3em]">
-              Your path is unwritten
+              {searchTerm ? "No artist matches this spell" : "Your path is unwritten"}
             </p>
           </div>
         )}
