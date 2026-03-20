@@ -10,7 +10,7 @@ import DrinkCharts from '@/components/DrinkCharts';
 import Leaderboard from '@/components/Leaderboard';
 import FlunkyBall from '@/components/FlunkyBall';
 import Schedule from '@/components/Schedule'; 
-import Profile from '@/components/Profile'; // 1. AJOUT DE L'IMPORT
+import Profile from '@/components/Profile';
 
 export default function Home() {
   const [session, setSession] = useState<any>(null);
@@ -55,7 +55,6 @@ export default function Home() {
       {/* HEADER */}
       <header className="px-6 py-6 flex justify-between items-center bg-[#F5F5DC]/90 backdrop-blur-md sticky top-0 z-50 border-b border-[#778899]/20">
         <div className="flex items-center gap-3 min-w-0 flex-1">
-          {/* Logo Temporaire Panda */}
           <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-[#2F4F4F]/5 rounded-xl border border-[#2F4F4F]/10 text-xl">
             🐼
           </div>
@@ -67,7 +66,6 @@ export default function Home() {
           </div>
         </div>
         
-        {/* AVATAR À DROITE - CLIQUEZ ICI POUR LE PROFIL */}
         <button 
           onClick={() => setActiveTab('profile')} 
           className={`w-10 h-10 flex-shrink-0 rounded-full border-2 transition-all active:scale-90 overflow-hidden shadow-sm
@@ -77,8 +75,7 @@ export default function Home() {
             uid={session.user.id} 
             url={profile?.avatar_url} 
             username={profile?.username}
-            readonly={true} // Mode Header
-            onUpload={(url) => setProfile({ ...profile, avatar_url: url })} 
+            readonly={true}
           />
         </button>
       </header>
@@ -86,9 +83,10 @@ export default function Home() {
       {/* ZONE DE CONTENU */}
       <div className="flex-1 overflow-y-auto px-5 pb-36">
         
-        {/* ONGLET ACTIVITÉ */}
+        {/* ONGLET ACTIVITÉ (Feed & Ranking) */}
         {activeTab === 'activity' && (
           <div className="mt-6 space-y-8 animate-in fade-in duration-500">
+            {/* SUB-NAVBAR (Journal / Ranking) */}
             <div className="flex p-1 bg-[#778899]/10 rounded-2xl border border-[#778899]/20 shadow-inner">
               <button 
                 onClick={() => setSubTab('feed')} 
@@ -107,21 +105,22 @@ export default function Home() {
               </div>
             ) : (
               <div className="space-y-10 animate-in slide-in-from-bottom-4">
-                <DrinkCharts />
+                {/* --- L'ORDRE A ÉTÉ INVERSÉ ICI --- */}
+                
+                {/* 1. CLASSEMENT TEXTUEL (Hierarchy) */}
                 <Leaderboard />
+                
+                {/* 2. GRAPHIQUES ANALYTIQUES (Timeline & Mix) */}
+                <DrinkCharts />
               </div>
             )}
           </div>
         )}
 
-        {/* 2. AJOUT DU RENDU DE L'ONGLET PROFIL */}
+        {/* AUTRES ONGLETS */}
         {activeTab === 'profile' && (
           <div className="mt-6">
-            <Profile 
-              profile={profile} 
-              setProfile={setProfile} 
-              session={session} 
-            />
+            <Profile profile={profile} setProfile={setProfile} session={session} />
           </div>
         )}
 
