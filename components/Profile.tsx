@@ -1,11 +1,13 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { supabase } from '@/supabase';
 import Avatar from './Avatar';
-import Members from './Members'; // Assure-toi de créer ce fichier avec le code précédent
+import Members from './Members';
+import Messages from './Messages'; // Assure-toi d'avoir le fichier corrigé avec {hour: '2-digit'}
 
 export default function Profile({ profile, setProfile, session }: any) {
-  const [subTab, setSubTab] = useState<'me' | 'members'>('me');
+  // On ajoute 'messages' comme état possible
+  const [subTab, setSubTab] = useState<'me' | 'members' | 'messages'>('me');
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -14,12 +16,12 @@ export default function Profile({ profile, setProfile, session }: any) {
   return (
     <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700 pb-20">
       
-      {/* 1. NAVIGATION INTERNE (Sub-tabs) */}
+      {/* 1. NAVIGATION INTERNE (On ne garde que les deux onglets principaux) */}
       <div className="flex p-1 bg-[#778899]/10 rounded-2xl border border-[#778899]/20 shadow-inner sticky top-2 z-40 backdrop-blur-md">
         <button 
           onClick={() => setSubTab('me')} 
           className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 
-            ${subTab === 'me' ? 'bg-[#2F4F4F] text-[#F5F5DC] shadow-md' : 'text-[#778899]'}`}
+            ${subTab === 'me' || subTab === 'messages' ? 'bg-[#2F4F4F] text-[#F5F5DC] shadow-md' : 'text-[#778899]'}`}
         >
           My Profile
         </button>
@@ -32,6 +34,7 @@ export default function Profile({ profile, setProfile, session }: any) {
         </button>
       </div>
 
+      {/* 2. LOGIQUE D'AFFICHAGE CONDITIONNELLE */}
       {subTab === 'me' ? (
         <div className="space-y-10 animate-in fade-in duration-500">
           {/* SECTION IDENTITÉ */}
@@ -55,7 +58,11 @@ export default function Profile({ profile, setProfile, session }: any) {
 
           {/* MENU ACTIONS */}
           <div className="space-y-3">
-            <button className="w-full bg-white/40 border border-[#778899]/20 p-5 rounded-[2rem] flex items-center justify-between group active:scale-[0.98] transition-all shadow-sm">
+            {/* ICI LE BOUTON QUI DÉCLENCHE LES MESSAGES */}
+            <button 
+              onClick={() => setSubTab('messages')}
+              className="w-full bg-white/40 border border-[#778899]/20 p-5 rounded-[2rem] flex items-center justify-between group active:scale-[0.98] transition-all shadow-sm"
+            >
               <div className="flex items-center gap-4">
                 <span className="text-xl">✉️</span>
                 <span className="text-[11px] font-black uppercase tracking-widest text-[#2F4F4F]">Sacred Messages</span>
@@ -63,7 +70,7 @@ export default function Profile({ profile, setProfile, session }: any) {
               <span className="text-[#2F4F4F]/30 group-hover:translate-x-1 transition-transform">→</span>
             </button>
 
-            <button className="w-full bg-white/40 border border-[#778899]/20 p-5 rounded-[2rem] flex items-center justify-between group active:scale-[0.98] transition-all shadow-sm">
+            <button className="w-full bg-white/40 border border-[#778899]/20 p-5 rounded-[2rem] flex items-center justify-between group active:scale-[0.98] transition-all shadow-sm opacity-50">
               <div className="flex items-center gap-4">
                 <span className="text-xl">🔔</span>
                 <span className="text-[11px] font-black uppercase tracking-widest text-[#2F4F4F]">Alerts Log</span>
@@ -80,16 +87,19 @@ export default function Profile({ profile, setProfile, session }: any) {
             >
               Leave the Archive
             </button>
-
-            <div className="flex items-center gap-3 opacity-20">
-                <div className="w-12 h-[1px] bg-[#2F4F4F]"></div>
-                <span className="text-[9px] font-black tracking-widest text-[#2F4F4F]">MMXXVI</span>
-                <div className="w-12 h-[1px] bg-[#2F4F4F]"></div>
-            </div>
           </div>
         </div>
+      ) : subTab === 'messages' ? (
+        <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
+          <button 
+            onClick={() => setSubTab('me')} 
+            className="text-[9px] font-black uppercase tracking-widest text-[#2F4F4F] flex items-center gap-2 px-2"
+          >
+            ← Back to Profile
+          </button>
+          <Messages session={session} />
+        </div>
       ) : (
-        /* ONGLET LISTE DES MEMBRES */
         <div className="animate-in slide-in-from-right-4 duration-500">
           <Members />
         </div>
