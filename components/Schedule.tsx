@@ -7,47 +7,83 @@ const STAGES = ['MAINSTAGE', 'FREEDOM STAGE', 'ATMOSPHERE', 'THE GREAT LIBRARY']
 export default function Schedule() {
   const [activeSubTab, setActiveSubTab] = useState<'global' | 'my'>('global');
   const [selectedDay, setSelectedDay] = useState('Friday');
-  const [searchTerm, setSearchTerm] = useState(""); // Nouvel état pour la recherche
+  const [searchTerm, setSearchTerm] = useState("");
   const [lineup, setLineup] = useState<any[]>([]);
   const [favorites, setFavorites] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchLineup();
+    fetchInitialData();
   }, []);
 
-  const fetchLineup = async () => {
+  const fetchInitialData = async () => {
     try {
-      const { data, error } = await supabase
+      setLoading(true);
+      
+      // 1. Récupérer le lineup
+      const { data: lineupData, error: lineupError } = await supabase
         .from('lineup')
         .select('*')
         .order('start_time', { ascending: true });
       
-      if (error) throw error;
-      if (data) setLineup(data);
+      if (lineupError) throw lineupError;
+      if (lineupData) setLineup(lineupData);
+
+      // 2. Récupérer les favoris de l'utilisateur connecté
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        const { data: favData, error: favError } = await supabase
+          .from('lineup_favorites')
+          .select('lineup_id')
+          .eq('user_id', session.user.id);
+        
+        if (favError) throw favError;
+        if (favData) {
+          setFavorites(favData.map(f => f.lineup_id));
+        }
+      }
     } catch (e) {
-      console.error("Erreur lineup:", e);
+      console.error("Erreur lors du chargement des données:", e);
     } finally {
       setLoading(false);
     }
   };
 
-  const toggleFavorite = (id: number) => {
+  const toggleFavorite = async (id: number) => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) return; // Sécurité si non connecté
+
+    const isAlreadyFav = favorites.includes(id);
+
+    // Mise à jour optimiste de l'UI
     setFavorites(prev => 
-      prev.includes(id) ? prev.filter(f => f !== id) : [...prev, id]
+      isAlreadyFav ? prev.filter(f => f !== id) : [...prev, id]
     );
+
+    try {
+      if (isAlreadyFav) {
+        // Suppression en base
+        await supabase
+          .from('lineup_favorites')
+          .delete()
+          .match({ user_id: session.user.id, lineup_id: id });
+      } else {
+        // Ajout en base
+        await supabase
+          .from('lineup_favorites')
+          .insert({ user_id: session.user.id, lineup_id: id });
+      }
+    } catch (e) {
+      console.error("Erreur synchro favoris:", e);
+      // Optionnel : remettre l'ancien état en cas d'erreur
+    }
   };
 
-  // LOGIQUE DE FILTRE AMÉLIORÉE
   const filteredLineup = lineup.filter(item => {
     const matchesSearch = item.artist?.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           item.stage?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // Si on recherche activement, on ignore le filtre du jour pour trouver l'artiste plus vite
     const matchesDay = searchTerm.length > 0 ? true : (item.day?.toLowerCase() === selectedDay.toLowerCase());
-    
     const isFav = activeSubTab === 'my' ? favorites.includes(item.id) : true;
-    
     return matchesSearch && matchesDay && isFav;
   });
 
@@ -60,7 +96,7 @@ export default function Schedule() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-24 px-1">
       
-      {/* 1. BARRE DE RECHERCHE - Design Minimaliste Ardoise */}
+      {/* Barre de Recherche */}
       <div className="relative group px-1">
         <input 
           type="text"
@@ -71,52 +107,32 @@ export default function Schedule() {
         />
         <span className="absolute left-5 top-1/2 -translate-y-1/2 opacity-30 text-xs">🔍</span>
         {searchTerm && (
-          <button 
-            onClick={() => setSearchTerm("")}
-            className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 bg-[#2F4F4F]/10 rounded-full text-[8px] flex items-center justify-center"
-          >
-            ✕
-          </button>
+          <button onClick={() => setSearchTerm("")} className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 bg-[#2F4F4F]/10 rounded-full text-[8px] flex items-center justify-center">✕</button>
         )}
       </div>
 
-      {/* 2. Onglets Global / My Schedule */}
+      {/* Onglets Global / My Schedule */}
       <div className="flex p-1 bg-[#778899]/10 rounded-2xl border border-[#778899]/20 shadow-inner">
-        <button 
-          onClick={() => setActiveSubTab('global')} 
-          className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 
-            ${activeSubTab === 'global' ? 'bg-[#2F4F4F] text-[#F5F5DC] shadow-md' : 'text-[#778899]'}`}
-        >
+        <button onClick={() => setActiveSubTab('global')} className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 ${activeSubTab === 'global' ? 'bg-[#2F4F4F] text-[#F5F5DC] shadow-md' : 'text-[#778899]'}`}>
           Global
         </button>
-        <button 
-          onClick={() => setActiveSubTab('my')} 
-          className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 
-            ${activeSubTab === 'my' ? 'bg-[#2F4F4F] text-[#F5F5DC] shadow-md' : 'text-[#778899]'}`}
-        >
+        <button onClick={() => setActiveSubTab('my')} className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 ${activeSubTab === 'my' ? 'bg-[#2F4F4F] text-[#F5F5DC] shadow-md' : 'text-[#778899]'}`}>
           My Path ({favorites.length})
         </button>
       </div>
 
-      {/* 3. Filtre Jours - Masqué si on recherche pour éviter la confusion */}
+      {/* Filtre Jours */}
       {!searchTerm && (
         <div className="flex gap-2 animate-in fade-in zoom-in-95 duration-300">
           {['Friday', 'Saturday', 'Sunday'].map(day => (
-            <button 
-              key={day} 
-              onClick={() => setSelectedDay(day)} 
-              className={`flex-1 py-3.5 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] border transition-all duration-300
-                ${selectedDay === day 
-                  ? 'bg-[#F5F5DC] text-[#2F4F4F] border-[#2F4F4F] shadow-md' 
-                  : 'bg-white/30 border-[#778899]/10 text-[#778899]/50'}`}
-            >
+            <button key={day} onClick={() => setSelectedDay(day)} className={`flex-1 py-3.5 rounded-2xl text-[9px] font-black uppercase tracking-[0.2em] border transition-all duration-300 ${selectedDay === day ? 'bg-[#F5F5DC] text-[#2F4F4F] border-[#2F4F4F] shadow-md' : 'bg-white/30 border-[#778899]/10 text-[#778899]/50'}`}>
               {day.slice(0, 3)}
             </button>
           ))}
         </div>
       )}
 
-      {/* 4. Liste par Scènes */}
+      {/* Liste des Artistes par Scènes */}
       <div className="space-y-12 mt-8">
         {STAGES.map(stage => {
           const stageArtists = filteredLineup.filter(item => item.stage?.toUpperCase() === stage);
@@ -137,26 +153,15 @@ export default function Schedule() {
                       key={artist.id} 
                       onClick={() => toggleFavorite(artist.id)}
                       className={`p-5 rounded-[1.8rem] border transition-all duration-300 flex justify-between items-center active:scale-[0.97]
-                        ${isFav 
-                          ? 'bg-[#2F4F4F] border-[#2F4F4F] shadow-lg shadow-[#2F4F4F]/10' 
-                          : 'bg-white/40 border-[#778899]/10 shadow-sm'}`}
+                        ${isFav ? 'bg-[#2F4F4F] border-[#2F4F4F] shadow-lg shadow-[#2F4F4F]/10' : 'bg-white/40 border-[#778899]/10 shadow-sm'}`}
                     >
                       <div className="flex flex-col gap-1">
-                        <div className={`text-[11px] font-black uppercase tracking-wider leading-none 
-                          ${isFav ? 'text-[#F5F5DC]' : 'text-[#2F4F4F]'}`}>
-                          {artist.artist}
-                        </div>
-                        <div className={`text-[8px] font-bold uppercase tracking-widest 
-                          ${isFav ? 'text-[#F5F5DC]/50' : 'text-[#778899]'}`}>
-                          {searchTerm ? `${artist.day.slice(0,3)} • ` : ''} 
-                          {artist.start_time} — {artist.end_time}
+                        <div className={`text-[11px] font-black uppercase tracking-wider leading-none ${isFav ? 'text-[#F5F5DC]' : 'text-[#2F4F4F]'}`}>{artist.artist}</div>
+                        <div className={`text-[8px] font-bold uppercase tracking-widest ${isFav ? 'text-[#F5F5DC]/50' : 'text-[#778899]'}`}>
+                          {searchTerm ? `${artist.day.slice(0,3)} • ` : ''} {artist.start_time} — {artist.end_time}
                         </div>
                       </div>
-                      
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs transition-all border
-                        ${isFav 
-                          ? 'bg-[#F5F5DC] text-[#2F4F4F] border-[#F5F5DC]' 
-                          : 'bg-[#778899]/5 text-[#778899]/30 border-[#778899]/10'}`}>
+                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs transition-all border ${isFav ? 'bg-[#F5F5DC] text-[#2F4F4F] border-[#F5F5DC]' : 'bg-[#778899]/5 text-[#778899]/30 border-[#778899]/10'}`}>
                         {isFav ? '✦' : '✧'}
                       </div>
                     </div>
@@ -167,7 +172,6 @@ export default function Schedule() {
           );
         })}
 
-        {/* Message si aucun résultat */}
         {filteredLineup.length === 0 && (
           <div className="text-center py-20 bg-white/20 rounded-[2.5rem] border border-dashed border-[#778899]/20">
             <p className="text-[9px] font-black text-[#778899]/40 uppercase tracking-[0.3em]">
