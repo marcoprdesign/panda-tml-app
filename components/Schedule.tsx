@@ -2,13 +2,23 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/supabase';
 
-const STAGES = ['MAINSTAGE', 'FREEDOM STAGE', 'ATMOSPHERE', 'THE GREAT LIBRARY'];
+// 1. DÉFINITION DE L'ORDRE DE PRIORITÉ
+// Plus le chiffre est petit, plus la scène apparaît en haut
+const STAGE_PRIORITY: Record<string, number> = {
+  'MAINSTAGE': 1,
+  'FREEDOM STAGE': 2,
+  'ATMOSPHERE': 3,
+  'THE GREAT LIBRARY': 4,
+  // Tu peux ajouter tes nouvelles scènes ici pour les placer précisément
+  'CRYSTAL GARDEN': 5,
+};
 
 export default function Schedule() {
   const [activeSubTab, setActiveSubTab] = useState<'global' | 'my'>('global');
   const [selectedDay, setSelectedDay] = useState('Friday');
   const [searchTerm, setSearchTerm] = useState("");
   const [lineup, setLineup] = useState<any[]>([]);
+  const [stages, setStages] = useState<string[]>([]);
   const [favorites, setFavorites] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -20,16 +30,33 @@ export default function Schedule() {
     try {
       setLoading(true);
       
-      // 1. Récupérer le lineup
       const { data: lineupData, error: lineupError } = await supabase
         .from('lineup')
         .select('*')
         .order('start_time', { ascending: true });
       
       if (lineupError) throw lineupError;
-      if (lineupData) setLineup(lineupData);
+      
+      if (lineupData) {
+        setLineup(lineupData);
+        
+        // 2. LOGIQUE DE TRI AVEC PRIORITÉ
+        const uniqueStages = Array.from(new Set(lineupData.map(item => item.stage?.toUpperCase())))
+          .filter(Boolean) as string[];
 
-      // 2. Récupérer les favoris de l'utilisateur connecté
+        const sortedStages = uniqueStages.sort((a, b) => {
+          const priorityA = STAGE_PRIORITY[a] || 999; // 999 pour les scènes inconnues (fin de liste)
+          const priorityB = STAGE_PRIORITY[b] || 999;
+
+          if (priorityA !== priorityB) {
+            return priorityA - priorityB;
+          }
+          return a.localeCompare(b); // Tri alphabétique si même priorité (ex: deux scènes inconnues)
+        });
+
+        setStages(sortedStages);
+      }
+
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         const { data: favData, error: favError } = await supabase
@@ -43,7 +70,7 @@ export default function Schedule() {
         }
       }
     } catch (e) {
-      console.error("Erreur lors du chargement des données:", e);
+      console.error("Erreur:", e);
     } finally {
       setLoading(false);
     }
@@ -51,32 +78,16 @@ export default function Schedule() {
 
   const toggleFavorite = async (id: number) => {
     const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return; // Sécurité si non connecté
-
+    if (!session) return;
     const isAlreadyFav = favorites.includes(id);
-
-    // Mise à jour optimiste de l'UI
-    setFavorites(prev => 
-      isAlreadyFav ? prev.filter(f => f !== id) : [...prev, id]
-    );
-
+    setFavorites(prev => isAlreadyFav ? prev.filter(f => f !== id) : [...prev, id]);
     try {
       if (isAlreadyFav) {
-        // Suppression en base
-        await supabase
-          .from('lineup_favorites')
-          .delete()
-          .match({ user_id: session.user.id, lineup_id: id });
+        await supabase.from('lineup_favorites').delete().match({ user_id: session.user.id, lineup_id: id });
       } else {
-        // Ajout en base
-        await supabase
-          .from('lineup_favorites')
-          .insert({ user_id: session.user.id, lineup_id: id });
+        await supabase.from('lineup_favorites').insert({ user_id: session.user.id, lineup_id: id });
       }
-    } catch (e) {
-      console.error("Erreur synchro favoris:", e);
-      // Optionnel : remettre l'ancien état en cas d'erreur
-    }
+    } catch (e) { console.error(e); }
   };
 
   const filteredLineup = lineup.filter(item => {
@@ -95,7 +106,6 @@ export default function Schedule() {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-24 px-1">
-      
       {/* Barre de Recherche */}
       <div className="relative group px-1">
         <input 
@@ -106,9 +116,6 @@ export default function Schedule() {
           className="w-full bg-white/40 backdrop-blur-xl border border-[#778899]/20 rounded-2xl py-4 pl-12 pr-4 text-[11px] font-bold text-[#2F4F4F] placeholder-[#778899]/40 focus:outline-none focus:ring-2 focus:ring-[#2F4F4F]/5 transition-all shadow-sm"
         />
         <span className="absolute left-5 top-1/2 -translate-y-1/2 opacity-30 text-xs">🔍</span>
-        {searchTerm && (
-          <button onClick={() => setSearchTerm("")} className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 bg-[#2F4F4F]/10 rounded-full text-[8px] flex items-center justify-center">✕</button>
-        )}
       </div>
 
       {/* Onglets Global / My Schedule */}
@@ -134,7 +141,7 @@ export default function Schedule() {
 
       {/* Liste des Artistes par Scènes */}
       <div className="space-y-12 mt-8">
-        {STAGES.map(stage => {
+        {stages.map(stage => {
           const stageArtists = filteredLineup.filter(item => item.stage?.toUpperCase() === stage);
           if (stageArtists.length === 0) return null;
 
