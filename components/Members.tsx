@@ -13,22 +13,35 @@ export default function Members() {
   }, []);
 
   const fetchProfiles = async () => {
-    const { data } = await supabase.from('profiles').select('*').order('username');
-    if (data) setProfiles(data);
-    setLoading(false);
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .order('username');
+      
+      if (error) {
+        console.error("🚨 ERREUR SUPABASE:", error.message);
+        return;
+      }
+
+      if (data) setProfiles(data);
+    } catch (err) {
+      console.error("💥 ERREUR CRITIQUE:", err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const viewPandaDetails = async (profile: any) => {
     setLoading(true);
     setSelectedPanda(profile);
 
-    // 1. Récupérer le nombre de verres
     const { count: drinkCount } = await supabase
       .from('drinks')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', profile.id);
 
-    // 2. Récupérer son Lineup (Path)
     const { data: favs } = await supabase
       .from('lineup_favorites')
       .select('lineup(artist, stage, start_time, day)')
@@ -41,10 +54,14 @@ export default function Members() {
     setLoading(false);
   };
 
-  if (loading && !selectedPanda) return <div className="py-10 text-center opacity-20 text-[10px] font-black uppercase tracking-widest">Finding the pack...</div>;
+  if (loading && !selectedPanda) return (
+    <div className="py-10 text-center opacity-20 text-[10px] font-black uppercase tracking-widest animate-pulse">
+      Finding the pack...
+    </div>
+  );
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
       
       {!selectedPanda ? (
         // --- VUE 1 : LISTE DES MEMBRES ---
@@ -55,7 +72,7 @@ export default function Members() {
               <div 
                 key={p.id} 
                 onClick={() => viewPandaDetails(p)}
-                className="flex items-center justify-between p-5 border-b border-[#778899]/5 last:border-0 active:bg-[#2F4F4F]/5 transition-all"
+                className="flex items-center justify-between p-5 border-b border-[#778899]/5 last:border-0 active:bg-[#2F4F4F]/5 transition-all cursor-pointer"
               >
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-full bg-[#2F4F4F]/5 border border-[#2F4F4F]/10 overflow-hidden">
@@ -63,7 +80,10 @@ export default function Members() {
                       <img src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${p.avatar_url}`} className="w-full h-full object-cover" />
                     ) : <span className="flex items-center justify-center h-full text-xl">🐼</span>}
                   </div>
-                  <span className="text-sm font-black uppercase tracking-tight text-[#2F4F4F]">{p.username || 'Mysterious Panda'}</span>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-black uppercase tracking-tight text-[#2F4F4F]">{p.username || 'Mysterious Panda'}</span>
+                    <span className="text-[8px] font-bold text-[#778899] uppercase tracking-widest">{p.country || 'Nomadic'}</span>
+                  </div>
                 </div>
                 <span className="text-[10px] font-black text-[#778899]">VIEW →</span>
               </div>
@@ -73,19 +93,33 @@ export default function Members() {
       ) : (
         // --- VUE 2 : DÉTAILS D'UN PANDA ---
         <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
-          <button onClick={() => setSelectedPanda(null)} className="text-[9px] font-black uppercase tracking-widest text-[#2F4F4F] flex items-center gap-2 mb-4">
+          <button onClick={() => setSelectedPanda(null)} className="text-[9px] font-black uppercase tracking-widest text-[#2F4F4F] flex items-center gap-2 mb-4 hover:opacity-60 transition-opacity">
             ← Back to the pack
           </button>
 
           {/* Header Profil */}
-          <div className="bg-white/60 p-8 rounded-[3rem] border border-[#2F4F4F]/10 text-center space-y-4 shadow-xl">
-             <div className="w-24 h-24 mx-auto rounded-full border-4 border-[#2F4F4F]/10 overflow-hidden shadow-inner">
+          <div className="bg-white/60 p-8 rounded-[3rem] border border-[#2F4F4F]/10 text-center space-y-5 shadow-xl">
+             <div className="w-24 h-24 mx-auto rounded-full border-4 border-[#2F4F4F]/10 overflow-hidden shadow-inner bg-[#F5F5DC]">
                 {selectedPanda.avatar_url ? (
                    <img src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${selectedPanda.avatar_url}`} className="w-full h-full object-cover" />
                 ) : <span className="text-4xl leading-[6rem]">🐼</span>}
              </div>
-             <h2 className="text-xl font-black uppercase tracking-tighter text-[#2F4F4F]">{selectedPanda.username}</h2>
-             <div className="inline-block px-4 py-1 bg-[#2F4F4F] text-[#F5F5DC] rounded-full text-[10px] font-black uppercase tracking-widest">
+             
+             <div>
+                <h2 className="text-xl font-black uppercase tracking-tighter text-[#2F4F4F] leading-tight">{selectedPanda.username}</h2>
+                
+                {/* CHIPS : COUNTRY & JOINED */}
+                <div className="flex flex-wrap justify-center items-center gap-2 mt-4">
+                    <span className="px-3 py-1.5 bg-[#2E8B57]/5 border border-[#2E8B57]/10 text-[#2E8B57]/70 rounded-full text-[8px] font-black uppercase tracking-[0.2em]">
+                        {selectedPanda.country || 'Nomadic'}
+                    </span>
+                    <span className="px-3 py-1.5 bg-[#2E8B57]/5 border border-[#2E8B57]/10 text-[#2E8B57]/70 rounded-full text-[8px] font-black uppercase tracking-[0.2em]">
+                        Joined {selectedPanda.joined || 'Ancient'}
+                    </span>
+                </div>
+             </div>
+
+             <div className="inline-block px-5 py-2 bg-[#2F4F4F] text-[#F5F5DC] rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#2F4F4F]/10">
                 {pandaStats?.drinkCount} Drinks Logged
              </div>
           </div>
@@ -96,7 +130,7 @@ export default function Members() {
             {pandaStats?.path.length > 0 ? (
               <div className="space-y-3">
                 {pandaStats.path.map((item: any, i: number) => (
-                  <div key={i} className="bg-white/40 p-4 rounded-2xl border border-[#778899]/10 flex justify-between items-center">
+                  <div key={i} className="bg-white/40 p-4 rounded-2xl border border-[#778899]/10 flex justify-between items-center shadow-sm">
                     <div>
                       <p className="text-[10px] font-black uppercase text-[#2F4F4F]">{item.artist}</p>
                       <p className="text-[8px] font-bold text-[#778899] uppercase">{item.day} • {item.stage}</p>
