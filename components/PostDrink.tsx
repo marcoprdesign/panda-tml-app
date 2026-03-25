@@ -56,7 +56,7 @@ export default function PostDrink({ userProfile }: { userProfile: any }) {
   return (
     <div className="w-full space-y-4 animate-in fade-in slide-in-from-bottom-6 duration-700 pb-10 px-1">
       
-      {/* HEADER - Utilisation du Waikawa 900 pour le titre */}
+      {/* HEADER */}
       <div className="px-2 mb-2">
         <h2 className="text-2xl font-black italic uppercase tracking-tighter text-[#313449]">
           Record Drink
@@ -66,8 +66,8 @@ export default function PostDrink({ userProfile }: { userProfile: any }) {
         </p>
       </div>
 
-      {/* CONTENEUR - Fond Waikawa 50 (très clair) avec bordure Waikawa 200 */}
-      <div className="w-full bg-[#f6f6f9] rounded-[2.5rem] border border-[#d3d6e4] p-6 shadow-sm relative overflow-hidden">
+      {/* CONTENEUR - Changé en blanc pur (#ffffff) pour dénoter du fond global */}
+      <div className="w-full bg-[#ffffff] rounded-[2.5rem] border border-[#d3d6e4] p-6 shadow-sm relative overflow-hidden">
         
         {/* SÉLECTEUR DE TYPE */}
         <div className="flex flex-wrap justify-center gap-2 mb-8 relative z-10">
@@ -81,10 +81,11 @@ export default function PostDrink({ userProfile }: { userProfile: any }) {
                 key={t}
                 type="button"
                 onClick={() => setType(t)}
+                /* Inactif : bg-[#ebecf3] (bleu très clair) | Actif : bg-[#313449] */
                 className={`px-4 py-2.5 rounded-xl border transition-all flex items-center gap-2 active:scale-95 duration-300
                   ${isActive 
                     ? 'border-[#313449] bg-[#313449] text-[#f6f6f9] shadow-lg shadow-[#313449]/20' 
-                    : 'border-[#d3d6e4] bg-white text-[#58618a]'}`}
+                    : 'border-[#d3d6e4] bg-[#ebecf3] text-[#58618a]'}`}
               >
                 <span className="text-[9px] font-black uppercase tracking-widest leading-none">
                   {label}
@@ -97,7 +98,7 @@ export default function PostDrink({ userProfile }: { userProfile: any }) {
           })}
         </div>
 
-        {/* BOUTON D'ACTION - Waikawa 950 (Le plus sombre pour l'action principale) */}
+        {/* BOUTON D'ACTION */}
         <label className={`flex items-center justify-center w-full py-5 rounded-[2rem] text-[#f6f6f9] text-[11px] font-black uppercase tracking-[0.3em] cursor-pointer active:scale-95 transition-all shadow-xl relative z-10
           ${loading ? 'bg-[#313449]/50 cursor-not-allowed' : 'bg-[#202231] hover:bg-[#313449] shadow-[#202231]/20'}`}>
           {loading ? 'Transcribing...' : '📸 Capture the moment'}

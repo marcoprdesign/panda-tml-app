@@ -5,7 +5,7 @@ import { supabase } from '@/supabase';
 const COUNTRIES = [
   "Argentina 🇦🇷", "Belgium 🇧🇪", "Brazil 🇧🇷", "Switzerland 🇨🇭", "Costa Rica 🇨🇷", 
   "Germany 🇩🇪", "Ecuador 🇪🇨", "Spain 🇪🇸", "France 🇫🇷", "United Kingdom 🇬🇧", 
-  "Mexico 🇲🇽", "The Netherlands NL 🇳🇱", "Norway 🇳🇴", "New-Zeland 🇳🇿", 
+  "Mexico 🇲🇽", "The Netherlands 🇳🇱", "Norway 🇳🇴", "New-Zeland 🇳🇿", 
   "Romania 🇷🇴", "Singapore 🇸🇬", "USA 🇺🇸"
 ].sort();
 
