@@ -54,7 +54,7 @@ export default function PostDrink({ userProfile }: { userProfile: any }) {
   };
 
   return (
-    <div className="w-full space-y-4 animate-in fade-in slide-in-from-bottom-6 duration-700 pb-10 px-1">
+    <div className="w-full space-y-4 animate-in fade-in slide-in-from-bottom-6 duration-700 px-1">
       
       {/* HEADER */}
       <div className="px-2 mb-2">
@@ -117,9 +117,7 @@ export default function PostDrink({ userProfile }: { userProfile: any }) {
         </p>
       </div>
 
-      <div className="flex justify-center opacity-20 pt-4">
-        <div className="w-8 h-[1px] bg-[#313449]"></div>
-      </div>
+      
     </div>
   );
 }

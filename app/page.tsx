@@ -138,10 +138,23 @@ export default function Home() {
               <button onClick={() => setSubTab('ranking')} className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 ${subTab === 'ranking' ? 'bg-[#313449] text-[#f6f6f9] shadow-md' : 'text-[#8089b0]'}`}> Ranking </button>
             </div>
             {subTab === 'feed' ? (
-              <div className="space-y-8"><PostDrink userProfile={profile} /><DrinkFeed /></div>
-            ) : (
-              <div className="space-y-10"><Leaderboard /></div>
-            )}
+  <div className="flex flex-col">
+    {/* Pas de margin ici, le séparateur gère l'espace */}
+    <PostDrink userProfile={profile} />
+    
+    {/* SÉPARATEUR AVEC ESPACE ÉGAL (py-10 = 40px en haut et en bas) */}
+    <div className="py-8 px-4">
+      
+    </div>
+
+    {/* Le Feed sans espace supplémentaire au dessus */}
+    <div className="-mt-6"> 
+      <DrinkFeed />
+    </div>
+  </div>
+) : (
+  <div className="space-y-10"><Leaderboard /></div>
+)}
           </div>
         )}
         {activeTab === 'profile' && <div className="mt-6 animate-in slide-in-from-right-4 duration-500"><Profile profile={profile} setProfile={setProfile} session={session} /></div>}
