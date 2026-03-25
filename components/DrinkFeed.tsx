@@ -49,35 +49,16 @@ export default function DrinkFeed() {
     }
   };
 
-  // NOUVELLE FONCTION DE SUPPRESSION
   const handleDelete = async (drinkId: string) => {
-  const confirmed = window.confirm("Delete this memory forever?");
-  if (!confirmed) return;
-
-  // On lance la suppression dans Supabase
-  const { error } = await supabase
-    .from('drinks')
-    .delete()
-    .eq('id', drinkId) // On cible le post précis
-    .eq('user_id', userId); // Sécurité supplémentaire : l'user doit être le propriétaire
-
-  if (error) {
-    console.error("Erreur Supabase:", error.message);
-    alert("Error: " + error.message);
-  } else {
-    // Si OK, on retire du flux local
-    setDrinks(prev => prev.filter(d => d.id !== drinkId));
-    
-    // Optionnel : Si tu veux que le Leaderboard se mette à jour immédiatement 
-    // sans attendre le prochain refresh, il faudra peut-être déclencher 
-    // un rafraîchissement global ou utiliser un "State" partagé.
-    // window.location.reload(); // Solution radicale mais efficace pour le leaderboard
-  }
-};
+    const confirmed = window.confirm("Delete this memory forever?");
+    if (!confirmed) return;
+    const { error } = await supabase.from('drinks').delete().eq('id', drinkId).eq('user_id', userId);
+    if (!error) setDrinks(prev => prev.filter(d => d.id !== drinkId));
+  };
 
   if (loading) return (
     <div className="flex justify-center py-10">
-      <div className="w-5 h-5 border-2 border-[#778899]/20 border-t-[#2F4F4F] rounded-full animate-spin" />
+      <div className="w-5 h-5 border-2 border-[#d3d6e4] border-t-[#313449] rounded-full animate-spin" />
     </div>
   );
 
@@ -85,25 +66,25 @@ export default function DrinkFeed() {
     <div className="space-y-6 pb-24 animate-in fade-in slide-in-from-bottom-6 duration-700">
       {drinks.map((drink) => {
         const isLiked = drink.drink_likes?.some((l: any) => l.user_id === userId);
-        const isOwner = drink.user_id === userId; // Vérification de propriété
+        const isOwner = drink.user_id === userId;
         const count = drink.drink_likes?.length || 0;
         
         return (
-          <div key={drink.id} className="relative aspect-[4/5] rounded-[2.8rem] overflow-hidden border border-[#778899]/20 shadow-lg bg-white/20 group animate-in fade-in slide-in-from-bottom-6">
+          <div key={drink.id} className="relative aspect-[4/5] rounded-[2.8rem] overflow-hidden border border-[#d3d6e4]/30 shadow-xl bg-[#ebecf3] group animate-in fade-in slide-in-from-bottom-6">
             
             {/* IMAGE DE FOND */}
             <img 
               src={getUrl('drinks', drink.photo_url)} 
-              className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-110" 
+              className="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" 
               alt="Drink Archive" 
             />
             
-            {/* OVERLAY GRADIENT */}
-            <div className="absolute inset-0 bg-gradient-to-t from-[#F5F5DC]/60 via-transparent to-transparent opacity-80" />
+            {/* OVERLAY GRADIENT - Noir transparent pour le Waikawa Look */}
+            <div className="absolute inset-0 bg-gradient-to-t from-[#202231]/40 via-transparent to-transparent opacity-80" />
 
-            {/* --- PILL UNIQUE (Top Left) --- */}
-            <div className="absolute top-5 left-5 flex items-center gap-3 bg-[#F5F5DC]/85 backdrop-blur-xl p-1.5 pr-6 rounded-[2.2rem] border border-white shadow-lg">
-              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#2F4F4F] shadow-sm bg-white">
+            {/* --- PILL USER (Top Left) --- Fond Blanc/Glass / Texte Waikawa 900 --- CORRIGÉ --- */}
+            <div className="absolute top-5 left-5 flex items-center gap-3 bg-[#f6f6f9]/90 backdrop-blur-xl p-1.5 pr-6 rounded-[2.2rem] border border-white/50 shadow-lg">
+              <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#313449] shadow-sm bg-white">
                 {drink.profiles?.avatar_url && (
                   <img src={getUrl('avatars', drink.profiles.avatar_url)} className="w-full h-full object-cover" />
                 )}
@@ -111,27 +92,28 @@ export default function DrinkFeed() {
               
               <div className="flex flex-col gap-1">
                 <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-black text-[#2F4F4F] uppercase tracking-widest leading-none">
+                  <span className="text-[10px] font-black text-[#313449] uppercase tracking-widest leading-none">
                     {drink.profiles?.username}
                   </span>
-                  <span className="text-[7px] font-bold text-[#778899] uppercase tracking-widest leading-none">
+                  <span className="text-[7px] font-bold text-[#8089b0] uppercase tracking-widest leading-none">
                     • {new Date(drink.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
-                <span className="text-[9px] font-black text-[#2F4F4F]/60 uppercase tracking-[0.2em] leading-none">
+                {/* Texte de boisson en Waikawa 700 */}
+                <span className="text-[9px] font-black text-[#58618a] uppercase tracking-[0.2em] leading-none">
                   {drink.drink_type}
                 </span>
               </div>
             </div>
 
-            {/* --- LIKE BUTTON PILL (Bottom Left) --- */}
+            {/* --- LIKE BUTTON PILL (Bottom Left) --- Waikawa 900 vs White/Glass --- CORRIGÉ --- */}
             <div className="absolute bottom-6 left-6">
               <button 
                 onClick={() => handleLike(drink.id)}
                 className={`flex items-center gap-3 backdrop-blur-2xl p-3 px-6 rounded-[1.8rem] border transition-all duration-500 active:scale-90 shadow-xl
                   ${isLiked 
-                    ? 'bg-[#2F4F4F] border-[#2F4F4F] text-[#F5F5DC]' 
-                    : 'bg-white/80 border-white text-[#2F4F4F]'}`}
+                    ? 'bg-[#313449] border-[#313449] text-[#f6f6f9]' 
+                    : 'bg-white/80 border-white text-[#313449]'}`}
               >
                 <span className={`text-sm transition-all duration-500 ${isLiked ? 'grayscale-0 scale-110' : 'grayscale opacity-40'}`}>
                   ❤️
@@ -142,19 +124,19 @@ export default function DrinkFeed() {
               </button>
             </div>
 
-            {/* --- DELETE PILL (Bottom Right) --- Style identique au Like */}
-{isOwner && (
-  <div className="absolute bottom-6 right-6">
-    <button 
-      onClick={() => handleDelete(drink.id)}
-      className="flex items-center gap-3 bg-white/80 backdrop-blur-2xl p-3 px-6 rounded-[1.8rem] border border-white text-[#2F4F4F] transition-all duration-300 active:scale-90 shadow-xl hover:bg-red-50 group/del"
-    >
-      <span className="text-[11px] font-black uppercase tracking-widest opacity-60 group-hover/del:opacity-100 transition-opacity">
-        Delete 🗑️
-      </span>
-    </button>
-  </div>
-)}
+            {/* --- DELETE PILL (Bottom Right) --- Style White/Glass avec texte Waikawa --- CORRIGÉ --- */}
+            {isOwner && (
+              <div className="absolute bottom-6 right-6">
+                <button 
+                  onClick={() => handleDelete(drink.id)}
+                  className="flex items-center gap-3 bg-white/20 backdrop-blur-md p-3 px-6 rounded-[1.8rem] border border-white/30 text-white transition-all duration-300 active:scale-90 shadow-xl hover:bg-red-500/20 group/del"
+                >
+                  <span className="text-[11px] font-black uppercase tracking-widest opacity-80 group-hover/del:opacity-100 transition-opacity">
+                    🗑️
+                  </span>
+                </button>
+              </div>
+            )}
 
           </div>
         );
