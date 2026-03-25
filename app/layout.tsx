@@ -1,46 +1,52 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
-
 export const metadata: Metadata = {
-  title: "Pandas Of Tomorrowland",
-  description: "Private Festival Hub - Consciencia Edition",
-  formatDetection: {
-    telephone: false,
-  },
-  // Déclaration des icônes pour le bookmarking
+  title: "Pandas Archive",
+  description: "Tomorrowland Legacy Journal",
   manifest: "/manifest.json",
-  icons: {
-    icon: "/icon-192.png", // Pour Android/Navigateurs
-    apple: "/apple-touch-icon.png", // Pour l'écran d'accueil iPhone
-  },
   appleWebApp: {
     capable: true,
+    // "black-translucent" permet à ton fond de s'étendre sous la barre d'état 
+    // pour un look d'application native sur iOS
     statusBarStyle: "black-translucent",
-    title: "Pandas Of Tomorrowland",
+    title: "Pandas Archive",
   },
 };
 
-// Mise à jour du viewport avec la couleur Saphir Consciencia
 export const viewport: Viewport = {
+  // On garde le blanc glacé pour que Safari fusionne avec ton fond d'app
+  themeColor: "#f6f6f9", 
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  themeColor: "#131F3B", // La barre d'état matchera ton nouveau bleu
 };
 
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
-    <html lang="fr" className="bg-[#0A1121]"> 
-      <body className={`${inter.className} antialiased selection:bg-[#E7C66E] selection:text-black`}>
-        {children}
+    <html lang="en">
+      <head>
+        <link rel="icon" href="/icons/icon-192x192.png" />
+        <link rel="apple-touch-icon" href="/icons/icon-192x192.png" />
+        <meta name="theme-color" content="#f6f6f9" media="(prefers-color-scheme: light)" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+      </head>
+      {/* bg-[#f6f6f9] : Couleur de fond du document (Safari/Chrome hors-app)
+          text-[#313449] : Couleur de texte par défaut (Waikawa Dark)
+          selection : Couleur quand on surligne du texte
+      */}
+      <body className="antialiased bg-[#f6f6f9] text-[#313449] selection:bg-[#adb2cc] selection:text-[#202231]">
+        {/* Conteneur principal compact 
+            shadow-black/5 : Ombre très légère sur les bords (plus propre que l'ancienne shadow-2xl)
+        */}
+        <div className="max-w-md mx-auto min-h-screen shadow-xl shadow-black/5 bg-[#f6f6f9]">
+          {children}
+        </div>
       </body>
     </html>
   );

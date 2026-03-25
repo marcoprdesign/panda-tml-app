@@ -49,7 +49,6 @@ export default function Avatar({ url, uid, onUpload, username, readonly = false 
 
       if (onUpload) onUpload(filePath);
       
-      // Mise à jour du profil dans la base de données
       await supabase.from('profiles').update({ avatar_url: filePath }).eq('id', uid);
       
     } catch (error: any) {
@@ -59,7 +58,6 @@ export default function Avatar({ url, uid, onUpload, username, readonly = false 
     }
   }
 
-  // Contenu commun (Image ou Initiale)
   const renderContent = () => (
     <>
       {avatarUrl ? (
@@ -69,21 +67,21 @@ export default function Avatar({ url, uid, onUpload, username, readonly = false 
           className="absolute inset-0 w-full h-full object-cover rounded-full" 
         />
       ) : (
-        <div className="absolute inset-0 w-full h-full flex items-center justify-center text-sm font-black italic text-[#2F4F4F]/60 bg-[#F5F5DC]">
+        /* Couleur initiale et fond vide ajustés */
+        <div className="absolute inset-0 w-full h-full flex items-center justify-center text-sm font-black italic text-[#313449]/60 bg-[#f6f6f9]">
           {initial}
         </div>
       )}
 
-      {/* Spinner de chargement */}
+      {/* Spinner de chargement ajusté */}
       {uploading && (
-        <div className="absolute inset-0 bg-[#2F4F4F]/60 flex items-center justify-center backdrop-blur-sm rounded-full z-10">
-          <div className="w-4 h-4 border-2 border-[#F5F5DC] border-t-transparent rounded-full animate-spin"></div>
+        <div className="absolute inset-0 bg-[#313449]/60 flex items-center justify-center backdrop-blur-sm rounded-full z-10">
+          <div className="w-4 h-4 border-2 border-[#f6f6f9] border-t-transparent rounded-full animate-spin"></div>
         </div>
       )}
     </>
   );
 
-  // MODE LECTURE SEULE (Pour le Header)
   if (readonly) {
     return (
       <div className="relative w-full h-full aspect-square flex items-center justify-center pointer-events-none">
@@ -92,18 +90,18 @@ export default function Avatar({ url, uid, onUpload, username, readonly = false 
     );
   }
 
-  // MODE ÉDITION (Pour la page Profil)
   return (
     <div className="relative w-full h-full aspect-square flex items-center justify-center group">
       <label 
-        className="cursor-pointer w-full h-full block relative rounded-full overflow-hidden bg-[#F5F5DC] border border-[#778899]/20 shadow-inner" 
+        /* Bordures et fond ajustés */
+        className="cursor-pointer w-full h-full block relative rounded-full overflow-hidden bg-[#f6f6f9] border border-[#d3d6e4] shadow-inner" 
         htmlFor="single"
       >
         {renderContent()}
         
-        {/* Overlay "Edit" au survol */}
+        {/* Overlay "Edit" ajusté */}
         {!uploading && (
-          <div className="absolute inset-0 bg-[#2F4F4F]/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20">
+          <div className="absolute inset-0 bg-[#313449]/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center z-20">
             <span className="text-[8px] font-black text-white uppercase tracking-widest">Edit</span>
           </div>
         )}

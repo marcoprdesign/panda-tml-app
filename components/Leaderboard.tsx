@@ -3,118 +3,102 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/supabase';
 
 export default function Leaderboard() {
-  const [stats, setStats] = useState<any[]>([]);
+  const [leaders, setLeaders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchLeaderboard = async () => {
-      const { data, error } = await supabase
-        .from('drinks')
-        .select('user_id, profiles:user_id(username, avatar_url)');
-      
-      if (data) {
-        const counts = data.reduce((acc: any, curr: any) => {
-          const id = curr.user_id;
-          const profile = Array.isArray(curr.profiles) ? curr.profiles[0] : curr.profiles;
-          
-          if (!acc[id]) {
-            acc[id] = { 
-              name: profile?.username || 'Traveler', 
-              avatar: profile?.avatar_url, 
-              count: 0 
-            };
-          }
-          acc[id].count += 1;
-          return acc;
-        }, {});
-        
-        setStats(Object.values(counts).sort((a: any, b: any) => b.count - a.count));
-      }
-      setLoading(false);
-    };
     fetchLeaderboard();
   }, []);
 
-  if (loading) return (
-    <div className="flex justify-center py-10 opacity-20 animate-pulse text-[10px] font-black uppercase tracking-widest">
-      Consulting the archives...
-    </div>
-  );
+  const fetchLeaderboard = async () => {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('username, avatar_url, drinks(id)')
+      .order('username');
+
+    if (data) {
+      const formatted = data.map(user => ({
+        username: user.username,
+        avatar_url: user.avatar_url,
+        count: user.drinks?.length || 0
+      })).sort((a, b) => b.count - a.count);
+      
+      setLeaders(formatted);
+    }
+    setLoading(false);
+  };
+
+  const getAvatarUrl = (path: string) => 
+    supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
+
+  if (loading) return <div className="text-center py-10 animate-pulse text-w-400 text-[10px] font-black uppercase tracking-widest">Calculating Hierarchy...</div>;
 
   return (
-    <div className="space-y-3 pb-10 px-1 animate-in fade-in slide-in-from-bottom-6 duration-700">
-      <h3 className="text-[10px] font-black text-[#778899] uppercase tracking-[0.3em] pl-4 mb-5">
-        Panda Hierarchy
-      </h3>
+    <div className="space-y-6 animate-in fade-in duration-700">
+      
+      {/* HEADER DU CLASSEMENT */}
+      <div className="px-2">
+        <h2 className="text-2xl font-black italic uppercase tracking-tighter text-[#313449]">
+          The Hierarchy
+        </h2>
+        <div className="h-1 w-12 bg-[#58618a] mt-1 rounded-full"></div>
+      </div>
 
-      {stats.map((user, index) => {
-        const isFirst = index === 0;
-        const isTop3 = index < 3;
-
-        return (
-          <div 
-            key={user.name} 
-            className={`flex items-center justify-between p-4 rounded-[2.2rem] border transition-all duration-500
-              ${isFirst 
-                ? 'bg-[#2F4F4F] border-[#2F4F4F] shadow-lg shadow-[#2F4F4F]/20 scale-[1.02]' 
-                : 'bg-white/40 border-[#778899]/10 shadow-sm'}`}
-          >
-            <div className="flex items-center gap-4">
-              {/* Index de classement stylisé */}
-              <div className={`w-6 text-center font-black italic text-[11px] 
-                ${isFirst ? 'text-[#F5F5DC]' : 'text-[#778899]/40'}`}>
-                {index + 1 < 10 ? `0${index + 1}` : index + 1}
+      <div className="space-y-3">
+        {leaders.map((user, index) => {
+          const isTop3 = index < 3;
+          const medals = ['🥇', '🥈', '🥉'];
+          
+          return (
+            <div 
+              key={user.username}
+              className={`flex items-center gap-4 p-4 rounded-[1.8rem] border transition-all duration-500
+                ${index === 0 
+                  ? 'bg-[#313449] border-[#313449] shadow-xl shadow-[#313449]/20' 
+                  : 'bg-white border-[#d3d6e4] shadow-sm'}`}
+            >
+              {/* RANK / MEDAL */}
+              <div className={`w-10 h-10 flex items-center justify-center font-black text-sm
+                ${index === 0 ? 'text-[#f6f6f9]' : 'text-[#8089b0]'}`}>
+                {isTop3 ? medals[index] : `#${index + 1}`}
               </div>
 
-              {/* Avatar avec bordure Ardoise pour le top 1 */}
-              <div className={`w-11 h-11 rounded-full overflow-hidden border-2 bg-[#F5F5DC] shadow-inner
-                ${isFirst ? 'border-[#F5F5DC]' : 'border-[#778899]/10'}`}>
-                {user.avatar ? (
-                  <img 
-                    src={supabase.storage.from('avatars').getPublicUrl(user.avatar).data.publicUrl} 
-                    className="w-full h-full object-cover" 
-                    alt="avatar"
-                  />
+              {/* AVATAR */}
+              <div className={`w-12 h-12 rounded-full overflow-hidden border-2 shadow-inner
+                ${index === 0 ? 'border-[#f6f6f9]/30' : 'border-[#ebecf3]'}`}>
+                {user.avatar_url ? (
+                  <img src={getAvatarUrl(user.avatar_url)} className="w-full h-full object-cover" />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center text-sm">
-                    🐼
-                  </div>
+                  <div className="w-full h-full bg-[#ebecf3] flex items-center justify-center text-xs opacity-50">🐼</div>
                 )}
               </div>
 
-              <div className="flex flex-col">
-                <span className={`text-[11px] font-black uppercase tracking-widest 
-                  ${isFirst ? 'text-[#F5F5DC]' : 'text-[#2F4F4F]'}`}>
-                  {user.name}
-                </span>
-                {isFirst && (
-                  <span className="text-[7px] font-bold text-[#F5F5DC]/60 uppercase tracking-[0.2em] mt-0.5 animate-pulse">
-                    Current Alpha
-                  </span>
-                )}
+              {/* INFO */}
+              <div className="flex-1">
+                <div className={`text-[11px] font-black uppercase tracking-wider
+                  ${index === 0 ? 'text-[#f6f6f9]' : 'text-[#313449]'}`}>
+                  {user.username}
+                </div>
+                <div className={`text-[8px] font-bold uppercase tracking-[0.2em]
+                  ${index === 0 ? 'text-[#8089b0]' : 'text-[#58618a]'}`}>
+                  {user.count > 0 ? `${user.count} Drinks Archived` : 'No records yet'}
+                </div>
               </div>
-            </div>
 
-            {/* Score */}
-            <div className="flex flex-col items-end pr-2">
-              <span className={`text-2xl font-black leading-none tracking-tighter
-                ${isFirst ? 'text-[#F5F5DC]' : 'text-[#2F4F4F]'}`}>
+              {/* COUNT BADGE */}
+              <div className={`px-4 py-2 rounded-xl font-black text-[10px] tracking-tighter shadow-sm
+                ${index === 0 ? 'bg-[#f6f6f9] text-[#313449]' : 'bg-[#ebecf3] text-[#313449]'}`}>
                 {user.count}
-              </span>
-              <span className={`text-[7px] font-black uppercase tracking-[0.1em]
-                ${isFirst ? 'text-[#F5F5DC]/40' : 'text-[#778899]/40'}`}>
-                Drinks
-              </span>
+              </div>
             </div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
 
-      {stats.length === 0 && (
-        <div className="text-center py-10 opacity-30 text-[9px] font-black uppercase tracking-[0.3em]">
-          The scroll is empty...
-        </div>
-      )}
+      {/* FOOTER CLASSEMENT */}
+      <p className="text-center text-[8px] font-bold text-[#8089b0] uppercase tracking-[0.4em] pt-4">
+        Legacy of the heavy drinkers
+      </p>
     </div>
   );
 }

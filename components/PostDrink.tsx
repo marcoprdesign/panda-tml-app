@@ -44,7 +44,6 @@ export default function PostDrink({ userProfile }: { userProfile: any }) {
 
       if (dbError) throw dbError;
 
-      // Rechargement pour voir le nouveau post dans le feed
       window.location.reload();
       
     } catch (error: any) {
@@ -57,20 +56,20 @@ export default function PostDrink({ userProfile }: { userProfile: any }) {
   return (
     <div className="w-full space-y-4 animate-in fade-in slide-in-from-bottom-6 duration-700 pb-10 px-1">
       
-      {/* HEADER DE SECTION */}
+      {/* HEADER - Utilisation du Waikawa 900 pour le titre */}
       <div className="px-2 mb-2">
-        <h2 className="text-2xl font-black italic uppercase tracking-tighter text-[#2F4F4F]">
+        <h2 className="text-2xl font-black italic uppercase tracking-tighter text-[#313449]">
           Record Drink
         </h2>
-        <p className="text-[9px] font-black text-[#778899] uppercase tracking-[0.3em] mt-1">
-          Submit to the journal, <span className="text-[#2F4F4F]">{userProfile?.username || 'Traveler'}</span>
+        <p className="text-[9px] font-black text-[#8089b0] uppercase tracking-[0.3em] mt-1">
+          Submit to the journal, <span className="text-[#313449]">{userProfile?.username || 'Traveler'}</span>
         </p>
       </div>
 
-      {/* CONTENEUR PRINCIPAL */}
-      <div className="w-full bg-white/40 rounded-[2.5rem] border border-[#778899]/20 backdrop-blur-sm p-6 shadow-sm relative overflow-hidden">
+      {/* CONTENEUR - Fond Waikawa 50 (très clair) avec bordure Waikawa 200 */}
+      <div className="w-full bg-[#f6f6f9] rounded-[2.5rem] border border-[#d3d6e4] p-6 shadow-sm relative overflow-hidden">
         
-        {/* SÉLECTEUR DE TYPE EN GRILLE COMPACTE */}
+        {/* SÉLECTEUR DE TYPE */}
         <div className="flex flex-wrap justify-center gap-2 mb-8 relative z-10">
           {TYPES.map((t) => {
             const label = t.split(' ')[0];
@@ -84,8 +83,8 @@ export default function PostDrink({ userProfile }: { userProfile: any }) {
                 onClick={() => setType(t)}
                 className={`px-4 py-2.5 rounded-xl border transition-all flex items-center gap-2 active:scale-95 duration-300
                   ${isActive 
-                    ? 'border-[#2F4F4F] bg-[#2F4F4F] text-[#F5F5DC] shadow-md shadow-[#2F4F4F]/20' 
-                    : 'border-[#778899]/10 bg-white/20 text-[#778899]'}`}
+                    ? 'border-[#313449] bg-[#313449] text-[#f6f6f9] shadow-lg shadow-[#313449]/20' 
+                    : 'border-[#d3d6e4] bg-white text-[#58618a]'}`}
               >
                 <span className="text-[9px] font-black uppercase tracking-widest leading-none">
                   {label}
@@ -98,9 +97,9 @@ export default function PostDrink({ userProfile }: { userProfile: any }) {
           })}
         </div>
 
-        {/* BOUTON D'ACTION PRINCIPAL - STYLE ARDOISE SOMBRE */}
-        <label className={`flex items-center justify-center w-full py-5 rounded-[2rem] text-[#F5F5DC] text-[11px] font-black uppercase tracking-[0.3em] cursor-pointer active:scale-95 transition-all shadow-xl relative z-10
-          ${loading ? 'bg-[#2F4F4F]/50 cursor-not-allowed' : 'bg-[#2F4F4F] hover:bg-[#2F4F4F]/90 shadow-[#2F4F4F]/20'}`}>
+        {/* BOUTON D'ACTION - Waikawa 950 (Le plus sombre pour l'action principale) */}
+        <label className={`flex items-center justify-center w-full py-5 rounded-[2rem] text-[#f6f6f9] text-[11px] font-black uppercase tracking-[0.3em] cursor-pointer active:scale-95 transition-all shadow-xl relative z-10
+          ${loading ? 'bg-[#313449]/50 cursor-not-allowed' : 'bg-[#202231] hover:bg-[#313449] shadow-[#202231]/20'}`}>
           {loading ? 'Transcribing...' : '📸 Capture the moment'}
           <input 
             type="file" 
@@ -112,14 +111,13 @@ export default function PostDrink({ userProfile }: { userProfile: any }) {
           />
         </label>
 
-        <p className="text-[8px] text-[#778899]/60 text-center mt-5 uppercase tracking-[0.4em] font-bold">
+        <p className="text-[8px] text-[#8089b0] text-center mt-5 uppercase tracking-[0.4em] font-bold">
           Archiving to the sacred feed
         </p>
       </div>
 
-      {/* PETITE DÉCO DE BAS DE PAGE */}
-      <div className="flex justify-center opacity-10 pt-4">
-        <div className="w-8 h-[1px] bg-[#2F4F4F]"></div>
+      <div className="flex justify-center opacity-20 pt-4">
+        <div className="w-8 h-[1px] bg-[#313449]"></div>
       </div>
     </div>
   );

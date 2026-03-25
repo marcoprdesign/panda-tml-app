@@ -37,30 +37,32 @@ export default function Home() {
     if (data) setProfile(data);
   }
 
+  // LOADING STATE - Utilisation de Waikawa 50 et 900
   if (loading) return (
-    <div className="min-h-screen bg-[#F5F5DC] flex items-center justify-center text-[#2F4F4F] font-black italic tracking-[0.3em] animate-pulse uppercase text-[10px]">
+    <div className="min-h-screen bg-[#f6f6f9] flex items-center justify-center text-[#313449] font-black italic tracking-[0.3em] animate-pulse uppercase text-[10px]">
       LOADING THE SCROLL...
     </div>
   );
 
+  // AUTH STATE
   if (!session) return (
-    <main className="min-h-screen bg-[#F5F5DC] p-6 flex flex-col justify-center">
+    <main className="min-h-screen bg-[#f6f6f9] p-6 flex flex-col justify-center">
       <Auth />
     </main>
   );
 
   return (
-    <main className="min-h-screen bg-[#F5F5DC] text-[#2F4F4F] flex flex-col font-sans antialiased">
+    <main className="min-h-screen bg-[#f6f6f9] text-[#313449] flex flex-col font-sans antialiased">
       
-      {/* HEADER */}
-      <header className="px-6 py-6 flex justify-between items-center bg-[#F5F5DC]/90 backdrop-blur-md sticky top-0 z-50 border-b border-[#778899]/20">
+      {/* HEADER - Sticky avec flou Waikawa 50 */}
+      <header className="px-6 py-6 flex justify-between items-center bg-[#f6f6f9]/90 backdrop-blur-md sticky top-0 z-50 border-b border-[#d3d6e4]/50">
         <div className="flex items-center gap-3 min-w-0 flex-1">
-          <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-[#2F4F4F]/5 rounded-xl border border-[#2F4F4F]/10 text-xl">
+          <div className="w-10 h-10 flex-shrink-0 flex items-center justify-center bg-[#313449]/5 rounded-xl border border-[#313449]/10 text-xl shadow-inner">
             🐼
           </div>
           
           <div className="flex flex-col text-left min-w-0">
-            <h1 className="text-lg font-black italic tracking-tighter uppercase leading-[0.9] text-[#2F4F4F] break-words">
+            <h1 className="text-lg font-black italic tracking-tighter uppercase leading-[0.9] text-[#313449] break-words">
               PANDAS OF <br className="xs:hidden" /> TOMORROWLAND
             </h1>
           </div>
@@ -69,7 +71,7 @@ export default function Home() {
         <button 
           onClick={() => setActiveTab('profile')} 
           className={`w-10 h-10 flex-shrink-0 rounded-full border-2 transition-all active:scale-90 overflow-hidden shadow-sm
-            ${activeTab === 'profile' ? 'border-[#2F4F4F] ring-2 ring-[#2F4F4F]/20' : 'border-[#778899]/20'}`}
+            ${activeTab === 'profile' ? 'border-[#313449] ring-4 ring-[#313449]/10' : 'border-[#d3d6e4]'}`}
         >
           <Avatar 
             uid={session.user.id} 
@@ -83,18 +85,18 @@ export default function Home() {
       {/* ZONE DE CONTENU */}
       <div className="flex-1 overflow-y-auto px-5 pb-36">
         
-        {/* ONGLET ACTIVITÉ (Feed & Ranking) */}
+        {/* ONGLET ACTIVITÉ */}
         {activeTab === 'activity' && (
           <div className="mt-6 space-y-8 animate-in fade-in duration-500">
-            {/* SUB-NAVBAR (Journal / Ranking) */}
-            <div className="flex p-1 bg-[#778899]/10 rounded-2xl border border-[#778899]/20 shadow-inner">
+            {/* SUB-NAVBAR - Waikawa 100/200 */}
+            <div className="flex p-1 bg-[#ebecf3] rounded-2xl border border-[#d3d6e4] shadow-inner">
               <button 
                 onClick={() => setSubTab('feed')} 
-                className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 ${subTab === 'feed' ? 'bg-[#2F4F4F] text-[#F5F5DC] shadow-md' : 'text-[#778899]'}`}
+                className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 ${subTab === 'feed' ? 'bg-[#313449] text-[#f6f6f9] shadow-md' : 'text-[#8089b0]'}`}
               > Journal </button>
               <button 
                 onClick={() => setSubTab('ranking')} 
-                className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 ${subTab === 'ranking' ? 'bg-[#2F4F4F] text-[#F5F5DC] shadow-md' : 'text-[#778899]'}`}
+                className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 ${subTab === 'ranking' ? 'bg-[#313449] text-[#f6f6f9] shadow-md' : 'text-[#8089b0]'}`}
               > Ranking </button>
             </div>
             
@@ -104,13 +106,8 @@ export default function Home() {
                 <DrinkFeed />
               </div>
             ) : (
-              <div className="space-y-10 animate-in slide-in-from-bottom-4">
-                {/* --- L'ORDRE A ÉTÉ INVERSÉ ICI --- */}
-                
-                {/* 1. CLASSEMENT TEXTUEL (Hierarchy) */}
+              <div className="space-y-10">
                 <Leaderboard />
-                
-                {/* 2. GRAPHIQUES ANALYTIQUES (Timeline & Mix) */}
                 <DrinkCharts />
               </div>
             )}
@@ -118,19 +115,14 @@ export default function Home() {
         )}
 
         {/* AUTRES ONGLETS */}
-        {activeTab === 'profile' && (
-          <div className="mt-6">
-            <Profile profile={profile} setProfile={setProfile} session={session} />
-          </div>
-        )}
-
+        {activeTab === 'profile' && <div className="mt-6 animate-in slide-in-from-right-4 duration-500"><Profile profile={profile} setProfile={setProfile} session={session} /></div>}
         {activeTab === 'schedule' && <div className="mt-6"><Schedule /></div>}
         {activeTab === 'flunky' && <div className="mt-6"><FlunkyBall /></div>}
         {activeTab === 'calc' && <div className="mt-6"><Calculator /></div>}
       </div>
 
-      {/* NAVIGATION BAR FLOTTANTE */}
-      <nav className="fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-sm bg-[#2F4F4F] border border-white/10 p-2 rounded-[2.5rem] flex justify-between items-center shadow-2xl z-50">
+      {/* BOTTOM NAV BAR - Waikawa 950 (Deep Blue/Gray) */}
+      <nav className="fixed bottom-8 left-1/2 -translate-x-1/2 w-[92%] max-w-sm bg-[#202231] border border-white/5 p-2 rounded-[2.5rem] flex justify-between items-center shadow-2xl z-50">
         {[
           { id: 'activity', icon: '📜', label: 'Feed' },
           { id: 'schedule', icon: '🏛️', label: 'Lineup' },
@@ -142,8 +134,8 @@ export default function Home() {
             onClick={() => setActiveTab(tab.id as any)} 
             className={`flex-1 flex flex-col items-center justify-center gap-1.5 py-3.5 rounded-[2.2rem] transition-all duration-300
               ${activeTab === tab.id 
-                ? 'bg-[#F5F5DC] text-[#2F4F4F] shadow-lg scale-105' 
-                : 'text-[#F5F5DC]/40'}`}
+                ? 'bg-[#f6f6f9] text-[#202231] shadow-lg scale-105' 
+                : 'text-white/30'}`}
           >
             <span className="text-xl leading-none">{tab.icon}</span>
             <span className="text-[7px] font-black uppercase tracking-[0.2em]">{tab.label}</span>
