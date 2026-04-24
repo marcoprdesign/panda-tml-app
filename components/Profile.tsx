@@ -4,8 +4,8 @@ import { supabase } from '@/supabase';
 import Avatar from './Avatar';
 import Members from './Members';
 import FAQ from './FAQ';
-import EventArchives from './EventArchives'; // 1. Importation du nouveau composant
-import { HelpCircleIcon } from "hugeicons-react";
+import EventArchives from './EventArchives'; 
+import { HelpCircleIcon, UserGroupIcon } from "hugeicons-react";
 
 export default function Profile({ profile, setProfile, session }: any) {
   const [showFAQ, setShowFAQ] = useState(false);
@@ -19,10 +19,10 @@ export default function Profile({ profile, setProfile, session }: any) {
   }
 
   return (
-    <div className="space-y-12 animate-in fade-in slide-in-from-bottom-6 duration-700 pb-20">
+    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700 pb-20">
       
       {/* 1. SECTION IDENTITÉ */}
-      <div className="flex flex-col items-center text-center space-y-4 pt-8">
+      <div className="flex flex-col items-center text-center space-y-4 pt-4">
         <div className="w-28 h-28 border-4 border-[#313449] rounded-full p-1 shadow-2xl relative group bg-white/50">
           <Avatar 
             uid={session.user.id} 
@@ -54,24 +54,31 @@ export default function Profile({ profile, setProfile, session }: any) {
             >
               <HelpCircleIcon size={16} className="group-hover:rotate-12 transition-transform" />
               <span className="text-[9px] font-black uppercase tracking-[0.2em]">
-                Frequently Asked (Dumb) Questions
+                Frequently Asked Questions
               </span>
             </button>
           </div>
         </div>
       </div>
 
-      <div className="px-6">
+      <div className="px-6 py-2">
         <div className="h-[1px] w-full bg-[#d3d6e4]/30" />
       </div>
 
-      {/* 2. SECTION THE PACK */}
-      <div className="animate-in fade-in duration-1000 delay-200">
+      {/* 2. SECTION THE PACK (Ré-injectée ici avec le bon style) */}
+      <div className="space-y-4 px-1">
+        <div className="flex items-center gap-2 px-2">
+          <UserGroupIcon size={18} className="text-[#313449]" />
+          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#313449]">
+            PANDA MEMBERS
+          </h3>
+        </div>
         <Members />
       </div>
 
-      {/* --- 3. SECTION ARCHIVES (NOUVEAU) --- */}
-      <div className="animate-in fade-in duration-1000 delay-400 pb-10">
+      {/* 3. SECTION ARCHIVES */}
+      {/* On réduit l'espace au dessus des archives pour éviter le trou */}
+      <div className="pt-2">
         <EventArchives />
       </div>
 

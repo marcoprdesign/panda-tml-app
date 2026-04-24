@@ -20,14 +20,10 @@ export default function Members() {
         .select('*')
         .order('username');
       
-      if (error) {
-        console.error("🚨 ERREUR SUPABASE:", error.message);
-        return;
-      }
-
+      if (error) return;
       if (data) setProfiles(data);
     } catch (err) {
-      console.error("💥 ERREUR CRITIQUE:", err);
+      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -61,12 +57,12 @@ export default function Members() {
   );
 
   return (
-    <div className="space-y-6 animate-in fade-in duration-500 pb-20">
+    /* Suppression du pb-20 qui créait le trou énorme en bas */
+    <div className="animate-in fade-in duration-500">
       
       {!selectedPanda ? (
-        // --- VUE 1 : LISTE DES MEMBRES ---
         <div className="grid grid-cols-1 gap-4">
-          <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#313449]/50 px-2">The Pack</h3>
+          {/* TITRE SUPPRIMÉ ICI : On utilise celui de Profile.tsx avec l'icône désormais */}
           <div className="bg-white/40 backdrop-blur-md rounded-[2.5rem] border border-[#d3d6e4]/30 overflow-hidden shadow-sm">
             {profiles.map((p) => (
               <div 
@@ -91,24 +87,19 @@ export default function Members() {
           </div>
         </div>
       ) : (
-        // --- VUE 2 : DÉTAILS D'UN PANDA ---
-        <div className="space-y-8 animate-in slide-in-from-right-4 duration-300">
-          <button onClick={() => setSelectedPanda(null)} className="text-[9px] font-black uppercase tracking-widest text-[#313449] flex items-center gap-2 mb-4 hover:opacity-60 transition-opacity">
+        <div className="space-y-8 animate-in slide-in-from-right-4 duration-300 pb-10">
+          <button onClick={() => setSelectedPanda(null)} className="text-[9px] font-black uppercase tracking-widest text-[#313449] flex items-center gap-2 mb-4">
             ← Back to the pack
           </button>
 
-          {/* Header Profil */}
           <div className="bg-white/60 p-8 rounded-[3rem] border border-[#d3d6e4] text-center space-y-5 shadow-xl">
-             <div className="w-24 h-24 mx-auto rounded-full border-4 border-[#313449]/10 overflow-hidden shadow-inner bg-[#f6f6f9]">
+             <div className="w-24 h-24 mx-auto rounded-full border-4 border-[#313449]/10 overflow-hidden bg-[#f6f6f9]">
                 {selectedPanda.avatar_url ? (
                    <img src={`${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/avatars/${selectedPanda.avatar_url}`} className="w-full h-full object-cover" />
                 ) : <span className="text-4xl leading-[6rem]">🐼</span>}
              </div>
-             
              <div>
                 <h2 className="text-xl font-black uppercase tracking-tighter text-[#313449] leading-tight">{selectedPanda.username}</h2>
-                
-                {/* CHIPS : COUNTRY & JOINED (Waikawa Palette) */}
                 <div className="flex flex-wrap justify-center items-center gap-2 mt-4">
                     <span className="px-3 py-1.5 bg-[#58618a]/5 border border-[#58618a]/10 text-[#58618a]/70 rounded-full text-[8px] font-black uppercase tracking-[0.2em]">
                         {selectedPanda.country || 'Nomadic'}
@@ -118,19 +109,17 @@ export default function Members() {
                     </span>
                 </div>
              </div>
-
-             <div className="inline-block px-5 py-2 bg-[#313449] text-[#f6f6f9] rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-[#313449]/10">
+             <div className="inline-block px-5 py-2 bg-[#313449] text-[#f6f6f9] rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
                 {pandaStats?.drinkCount} Drinks Logged
              </div>
           </div>
 
-          {/* Son Path (Lineup) */}
           <div className="space-y-4">
             <h3 className="text-[10px] font-black uppercase tracking-[0.3em] text-[#313449]/50 px-2">Their Path</h3>
             {pandaStats?.path.length > 0 ? (
               <div className="space-y-3">
                 {pandaStats.path.map((item: any, i: number) => (
-                  <div key={i} className="bg-white/40 p-4 rounded-2xl border border-[#d3d6e4] flex justify-between items-center shadow-sm">
+                  <div key={i} className="bg-white/40 p-4 rounded-2xl border border-[#d3d6e4] flex justify-between items-center">
                     <div>
                       <p className="text-[10px] font-black uppercase text-[#313449]">{item.artist}</p>
                       <p className="text-[8px] font-bold text-[#8089b0] uppercase">{item.day} • {item.stage}</p>
