@@ -2,7 +2,11 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/supabase';
 
-export default function DrinkFeed({ archiveEventId }: { archiveEventId?: string }) {
+interface DrinkFeedProps {
+  archiveEventId?: string;
+}
+
+export default function DrinkFeed({ archiveEventId }: DrinkFeedProps) {
   const [drinks, setDrinks] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -14,7 +18,6 @@ export default function DrinkFeed({ archiveEventId }: { archiveEventId?: string 
     
     let targetEventId = archiveEventId;
 
-    // Si on n'est pas en mode archive, on récupère l'événement actif
     if (!targetEventId) {
       const { data: activeEvent } = await supabase
         .from('events')
@@ -34,7 +37,6 @@ export default function DrinkFeed({ archiveEventId }: { archiveEventId?: string 
     setLoading(false);
   };
 
-  // CRUCIAL: On ajoute archiveEventId ici pour que le feed se mette à jour à l'ouverture de la modal
   useEffect(() => { 
     fetchDrinks(); 
   }, [archiveEventId]);

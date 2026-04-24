@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/supabase';
 import { Archive01Icon } from "hugeicons-react";
-import ArchiveModal from './ArchiveModal'; // Vérifie bien le nom du fichier !
+import ArchiveModal from './ArchiveModal.tsx';
 
 export default function EventArchives() {
   const [archives, setArchives] = useState<any[]>([]);

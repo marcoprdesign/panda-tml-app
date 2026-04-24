@@ -3,7 +3,6 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/supabase';
 import DrinkCharts from './DrinkCharts';
 
-// On définit ce que le composant peut recevoir
 interface LeaderboardProps {
   archiveEventId?: string;
 }

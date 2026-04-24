@@ -17,32 +17,49 @@ import { Line, Bar } from 'react-chartjs-2';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler);
 
-export default function DrinkCharts() {
+// Définition de l'interface pour TypeScript
+interface DrinkChartsProps {
+  archiveEventId?: string;
+}
+
+export default function DrinkCharts({ archiveEventId }: DrinkChartsProps) {
   const [lineData, setLineData] = useState<any>(null);
   const [typeData, setTypeData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  // --- NOUVELLE PALETTE WAIKAWA GRAY ---
   const palette = {
-    dark: '#202231',      // 950
-    main: '#313449',      // 900
-    slate: '#58618a',     // 500
-    muted: '#8089b0',     // 400
-    light: '#adb2cc',     // 300
-    accent: '#d3d6e4'     // 200
+    dark: '#202231',
+    main: '#313449',
+    slate: '#58618a',
+    muted: '#8089b0',
+    light: '#adb2cc',
+    accent: '#d3d6e4'
   };
 
-  useEffect(() => {
-    fetchChartData();
-  }, []);
-
   const fetchChartData = async () => {
+    setLoading(true);
+    
+    let targetEventId = archiveEventId;
+
+    // Si on n'a pas d'ID d'archive, on récupère l'ID de l'event actif
+    if (!targetEventId) {
+      const { data: activeEvent } = await supabase
+        .from('events')
+        .select('id')
+        .eq('is_active', true)
+        .single();
+      targetEventId = activeEvent?.id;
+    }
+
     const { data: drinks, error } = await supabase
       .from('drinks')
       .select('created_at, drink_type, profiles(username)')
+      .eq('event_id', targetEventId) // FILTRE PAR EVENT
       .order('created_at', { ascending: true });
 
     if (error || !drinks || drinks.length === 0) {
+      setLineData(null);
+      setTypeData(null);
       setLoading(false);
       return;
     }
@@ -50,7 +67,7 @@ export default function DrinkCharts() {
     const usernames = Array.from(new Set(drinks.map((d: any) => d.profiles?.username || 'Panda')));
     const typeStats: any = {};
 
-    // 1. CONFIG LINE CHART (Timeline avec ta logique cumulative)
+    // 1. CONFIG LINE CHART
     const chartColors = [palette.main, palette.slate, palette.muted, palette.light, palette.accent];
     const lineDatasets = usernames.map((name, index) => {
       let cumulative = 0;
@@ -63,7 +80,7 @@ export default function DrinkCharts() {
         label: name,
         data: dataPoints,
         borderColor: color,
-        backgroundColor: color + '15', // Opacité légère
+        backgroundColor: color + '15',
         fill: true,
         tension: 0.4,
         pointRadius: 0,
@@ -73,7 +90,7 @@ export default function DrinkCharts() {
 
     setLineData({ labels: drinks.map((_, i) => i + 1), datasets: lineDatasets });
 
-    // 2. CONFIG BAR CHART (Mix par Type avec ta logique)
+    // 2. CONFIG BAR CHART
     drinks.forEach((d: any) => {
       const type = d.drink_type || 'Other';
       typeStats[type] = (typeStats[type] || 0) + 1;
@@ -95,6 +112,10 @@ export default function DrinkCharts() {
 
     setLoading(false);
   };
+
+  useEffect(() => {
+    fetchChartData();
+  }, [archiveEventId]); // Se relance quand l'ID change
 
   const options: any = {
     responsive: true,
@@ -132,7 +153,17 @@ export default function DrinkCharts() {
     }
   };
 
-  if (loading) return <div className="flex justify-center py-10 opacity-20 text-[9px] font-black uppercase tracking-widest text-[#313449]">Analyzing scrolls...</div>;
+  if (loading) return (
+    <div className="flex justify-center py-10 opacity-20 text-[9px] font-black uppercase tracking-widest text-[#313449]">
+      Analyzing scrolls...
+    </div>
+  );
+
+  if (!lineData && !typeData) return (
+    <div className="py-10 text-center opacity-40 text-[9px] font-black uppercase tracking-widest text-[#313449]">
+      No data to visualize for this era 🐼
+    </div>
+  );
 
   return (
     <div className="space-y-6">
