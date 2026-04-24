@@ -1,6 +1,7 @@
 "use client";
 import { useState } from 'react';
 import { supabase } from '@/supabase';
+import { DotLottiePlayer } from '@dotlottie/react-player'; // Import du player
 
 const COUNTRIES = [
   "Argentina 🇦🇷", "Belgium 🇧🇪", "Brazil 🇧🇷", "Switzerland 🇨🇭", "Costa Rica 🇨🇷", 
@@ -60,17 +61,23 @@ export default function Auth() {
 
   return (
     <div className="w-full max-w-sm mx-auto space-y-10 animate-in fade-in slide-in-from-bottom-8 duration-1000 py-10 px-4">
-      {/* HEADER */}
-      <div className="text-center space-y-3">
-        <h1 className="text-4xl font-black italic tracking-tighter text-[#313449] uppercase leading-none">
-          PANDAS <br/> ARCHIVE
+      {/* HEADER AVEC LOTTIE PANDA */}
+      <div className="flex flex-col items-center text-center space-y-2">
+        <div className="w-40 h-40 overflow-hidden">
+          <DotLottiePlayer
+            src="https://lottie.host/0b50c70e-cb24-4365-9907-e193a4e41bdc/ECZWMXdVNQ.lottie"
+            autoplay
+            loop
+            style={{ width: '100%', height: '100%' }}
+          />
+        </div>
+        <h1 className="text-2xl font-black italic tracking-tighter text-[#313449] uppercase leading-none">
+          PANDAS OF TOMORROWLAND
         </h1>
-        <p className="text-[10px] font-black text-[#8089b0] uppercase tracking-[0.4em]">
-          {isRegister ? 'Join the legacy' : 'Access the hub'}
-        </p>
       </div>
 
       <form onSubmit={handleAuth} className="space-y-4">
+        {/* ... (Reste du formulaire identique) */}
         <div className="space-y-3">
           {isRegister && (
             <>
