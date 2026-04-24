@@ -104,14 +104,26 @@ export default function DrinkFeed({ archiveEventId }: DrinkFeedProps) {
                   )}
                 </div>
                 <div className="flex flex-col gap-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-black text-[#313449] uppercase tracking-widest leading-none">{drink.profiles?.username}</span>
-                    <span className="text-[7px] font-bold text-[#8089b0] uppercase tracking-widest leading-none">
-                      • {new Date(drink.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                    </span>
-                  </div>
-                  <span className="text-[9px] font-black text-[#58618a] uppercase tracking-[0.2em] leading-none">{drink.drink_type}</span>
-                </div>
+  <div className="flex items-center gap-2">
+    <span className="text-[10px] font-black text-[#313449] uppercase tracking-widest leading-none">
+      {drink.profiles?.username}
+    </span>
+    <span className="text-[7px] font-bold text-[#8089b0] uppercase tracking-widest leading-none flex items-center gap-1">
+       {new Date(drink.created_at).toLocaleDateString('en-GB', { 
+          day: 'numeric', 
+          month: 'short' 
+        })}
+      <span className="opacity-50">•</span> 
+      {new Date(drink.created_at).toLocaleTimeString([], { 
+          hour: '2-digit', 
+          minute: '2-digit' 
+        })}
+    </span>
+  </div>
+  <span className="text-[9px] font-black text-[#58618a] uppercase tracking-[0.2em] leading-none">
+    {drink.drink_type}
+  </span>
+</div>
               </div>
               <div className="absolute bottom-6 left-6">
                 <button onClick={() => handleLike(drink.id)} className={`flex items-center gap-3 backdrop-blur-2xl p-3 px-6 rounded-[1.8rem] border transition-all duration-500 active:scale-90 shadow-xl ${isLiked ? 'bg-[#313449] border-[#313449] text-[#f6f6f9]' : 'bg-white/80 border-white text-[#313449]'}`}>
