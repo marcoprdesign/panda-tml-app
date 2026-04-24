@@ -3,20 +3,28 @@ import { useEffect, useState } from 'react';
 import { supabase } from '@/supabase';
 import DrinkCharts from './DrinkCharts';
 
-export default function Leaderboard() {
+// On définit ce que le composant peut recevoir
+interface LeaderboardProps {
+  archiveEventId?: string;
+}
+
+export default function Leaderboard({ archiveEventId }: LeaderboardProps) {
   const [leaders, setLeaders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    fetchLeaderboard();
-  }, []);
-
   const fetchLeaderboard = async () => {
     try {
-      setLoading(true); // On force le chargement
+      setLoading(true);
+      let targetEventId = archiveEventId;
+
+      if (!targetEventId) {
+        const { data: activeEvent } = await supabase.from('events').select('id').eq('is_active', true).single();
+        targetEventId = activeEvent?.id;
+      }
+
       const { data, error } = await supabase
         .from('profiles')
-        .select('username, avatar_url, drinks(id)')
+        .select(`username, avatar_url, drinks(id, event_id)`)
         .order('username');
 
       if (error) throw error;
@@ -25,7 +33,7 @@ export default function Leaderboard() {
         const formatted = data.map(user => ({
           username: user.username,
           avatar_url: user.avatar_url,
-          count: user.drinks?.length || 0
+          count: user.drinks?.filter((d: any) => d.event_id === targetEventId).length || 0
         })).sort((a, b) => b.count - a.count);
         
         setLeaders(formatted);
@@ -33,10 +41,13 @@ export default function Leaderboard() {
     } catch (err) {
       console.error("Erreur Leaderboard:", err);
     } finally {
-      // LE FINALLY GARANTIT QUE LOADING PASSE À FALSE QUOI QU'IL ARRIVE
       setLoading(false);
     }
   };
+
+  useEffect(() => { 
+    fetchLeaderboard(); 
+  }, [archiveEventId]);
 
   const getAvatarUrl = (path: string) => 
     supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl;
@@ -49,14 +60,11 @@ export default function Leaderboard() {
 
   return (
     <div className="space-y-12 animate-in fade-in duration-700 pb-20">
-      
-      {/* SECTION CLASSEMENT */}
       <div className="space-y-6">
         <div className="px-2">
           <h2 className="text-2xl font-black italic uppercase tracking-tighter text-[#313449]">The Hierarchy</h2>
           <div className="h-1 w-12 bg-[#58618a] mt-1 rounded-full"></div>
         </div>
-
         <div className="space-y-3">
           {leaders.length > 0 ? (
             leaders.map((user, index) => {
@@ -81,18 +89,16 @@ export default function Leaderboard() {
               );
             })
           ) : (
-            <div className="text-center text-[10px] text-[#8089b0] uppercase">No one has started drinking yet. 🐼</div>
+            <div className="text-center text-[10px] text-[#8089b0] uppercase">No archives for this era. 🐼</div>
           )}
         </div>
       </div>
-
-      {/* SECTION GRAPHIQUES */}
       <div className="pt-10 border-t border-[#d3d6e4]/50">
         <div className="px-2 mb-6">
           <h2 className="text-2xl font-black italic uppercase tracking-tighter text-[#313449]">The Analytics</h2>
           <div className="h-1 w-12 bg-[#58618a] mt-1 rounded-full"></div>
         </div>
-        <DrinkCharts />
+        <DrinkCharts archiveEventId={archiveEventId} />
       </div>
     </div>
   );

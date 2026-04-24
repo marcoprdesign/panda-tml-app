@@ -21,10 +21,19 @@ export default function PostDrink({ userProfile }: { userProfile: any }) {
     if (!file || !userProfile) return;
     
     setLoading(true);
-    const fileExt = file.name.split('.').pop();
-    const fileName = `${userProfile.id}-${Date.now()}.${fileExt}`;
 
     try {
+      // 1. RÉCUPÉRATION DE L'EVENT ACTIF (Invisible pour l'utilisateur)
+      const { data: activeEvent } = await supabase
+        .from('events')
+        .select('id')
+        .eq('is_active', true)
+        .single();
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${userProfile.id}-${Date.now()}.${fileExt}`;
+
+      // 2. UPLOAD DE L'IMAGE
       const { data: storageData, error: storageError } = await supabase.storage
         .from('drinks')
         .upload(fileName, file, {
@@ -34,12 +43,14 @@ export default function PostDrink({ userProfile }: { userProfile: any }) {
 
       if (storageError) throw storageError;
 
+      // 3. INSERTION AVEC EVENT_ID
       const { error: dbError } = await supabase
         .from('drinks')
         .insert([{
           user_id: userProfile.id,
           drink_type: type,
-          photo_url: fileName
+          photo_url: fileName,
+          event_id: activeEvent?.id || 'tml-2024' // Utilise l'event actif ou l'ancien par défaut
         }]);
 
       if (dbError) throw dbError;
@@ -66,7 +77,7 @@ export default function PostDrink({ userProfile }: { userProfile: any }) {
         </p>
       </div>
 
-      {/* CONTENEUR - Changé en blanc pur (#ffffff) pour dénoter du fond global */}
+      {/* CONTENEUR */}
       <div className="w-full bg-[#ffffff] rounded-[2.5rem] border border-[#d3d6e4] p-6 shadow-sm relative overflow-hidden">
         
         {/* SÉLECTEUR DE TYPE */}
@@ -81,7 +92,6 @@ export default function PostDrink({ userProfile }: { userProfile: any }) {
                 key={t}
                 type="button"
                 onClick={() => setType(t)}
-                /* Inactif : bg-[#ebecf3] (bleu très clair) | Actif : bg-[#313449] */
                 className={`px-4 py-2.5 rounded-xl border transition-all flex items-center gap-2 active:scale-95 duration-300
                   ${isActive 
                     ? 'border-[#313449] bg-[#313449] text-[#f6f6f9] shadow-lg shadow-[#313449]/20' 
@@ -116,8 +126,6 @@ export default function PostDrink({ userProfile }: { userProfile: any }) {
           Archiving to the sacred feed
         </p>
       </div>
-
-      
     </div>
   );
 }

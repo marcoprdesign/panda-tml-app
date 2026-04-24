@@ -3,7 +3,8 @@ import { useState } from 'react';
 import { supabase } from '@/supabase';
 import Avatar from './Avatar';
 import Members from './Members';
-import FAQ from './FAQ'; // Importe le nouveau composant
+import FAQ from './FAQ';
+import EventArchives from './EventArchives'; // 1. Importation du nouveau composant
 import { HelpCircleIcon } from "hugeicons-react";
 
 export default function Profile({ profile, setProfile, session }: any) {
@@ -13,7 +14,6 @@ export default function Profile({ profile, setProfile, session }: any) {
     await supabase.auth.signOut();
   };
 
-  // Si showFAQ est vrai, on affiche uniquement la page FAQ
   if (showFAQ) {
     return <FAQ onBack={() => setShowFAQ(false)} />;
   }
@@ -41,7 +41,6 @@ export default function Profile({ profile, setProfile, session }: any) {
           </div>
 
           <div className="flex flex-col items-center gap-4">
-            {/* BOUTON LOGOUT */}
             <button 
               onClick={handleSignOut}
               className="px-4 py-1.5 rounded-full border border-[#d3d6e4] bg-[#ebecf3]/50 text-[8px] font-black text-[#8089b0] uppercase tracking-[0.2em] hover:bg-red-50 hover:text-red-800 transition-all"
@@ -49,7 +48,6 @@ export default function Profile({ profile, setProfile, session }: any) {
               Logout
             </button>
 
-            {/* --- NOUVEAU BOUTON FAQ --- */}
             <button 
               onClick={() => setShowFAQ(true)}
               className="flex items-center gap-2 px-6 py-3 rounded-full bg-[#313449] text-[#f6f6f9] shadow-lg shadow-[#313449]/20 transition-all active:scale-95 group"
@@ -63,7 +61,6 @@ export default function Profile({ profile, setProfile, session }: any) {
         </div>
       </div>
 
-      {/* SÉPARATEUR DISCRET */}
       <div className="px-6">
         <div className="h-[1px] w-full bg-[#d3d6e4]/30" />
       </div>
@@ -71,6 +68,11 @@ export default function Profile({ profile, setProfile, session }: any) {
       {/* 2. SECTION THE PACK */}
       <div className="animate-in fade-in duration-1000 delay-200">
         <Members />
+      </div>
+
+      {/* --- 3. SECTION ARCHIVES (NOUVEAU) --- */}
+      <div className="animate-in fade-in duration-1000 delay-400 pb-10">
+        <EventArchives />
       </div>
 
     </div>
