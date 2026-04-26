@@ -10,7 +10,7 @@ const COUNTRIES = [
   "Romania 🇷🇴", "Singapore 🇸🇬", "USA 🇺🇸"
 ].sort();
 
-const YEARS = Array.from({ length: 2026 - 2015 + 1 }, (_, i) => (2015 + i).toString());
+const YEARS = Array.from({ length: 2026 - 2014 + 1 }, (_, i) => (2014 + i).toString());
 
 export default function Auth() {
   const [loading, setLoading] = useState(false);
