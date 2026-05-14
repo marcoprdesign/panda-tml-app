@@ -28,6 +28,9 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
       streamRef.current.getTracks().forEach(track => track.stop());
       streamRef.current = null;
     }
+    if (videoRef.current) {
+      videoRef.current.srcObject = null;
+    }
   };
 
   useEffect(() => {
@@ -62,11 +65,12 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
     streamRef.current = stream;
     if (videoRef.current) {
       videoRef.current.srcObject = stream;
-      await videoRef.current.play();
+      setTimeout(() => {
+        videoRef.current?.play().catch(e => console.error("Play error:", e));
+      }, 100);
     }
   };
 
-  // 1. Démarrage de la séquence (Ouvre la cam arrière)
   const startSequence = async () => {
     setLoading(true);
     setStatus('capturing');
@@ -87,37 +91,72 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
     }
   };
 
-  // 2. Déclenchement manuel du Drink -> Enchaîne le Selfie auto
   const handleShutterClick = async () => {
     if (!videoRef.current || !canvasRef.current) return;
     const ctx = canvasRef.current.getContext('2d')!;
 
     try {
-      // Capture du Drink (Manuel)
+      // 1. Capture du Drink (Arrière)
       drawCover(ctx, videoRef.current, 0, 0, 1080, 1350);
 
-      // Bascule auto vers Selfie
+      // 2. Bascule auto vers Selfie
       setActiveSide('front');
       await setupCamera('user');
       
       // Timer auto pour le selfie (1.5s)
       await new Promise(r => setTimeout(r, 1500));
       
-      const sW = 320, sH = 420, sX = 40, sY = 40;
+      // --- CONFIGURATION SELFIE BAS À DROITE ARRONDI ---
+      const sW = 320; 
+      const sH = 420; 
+      const sX = 1080 - sW - 40; 
+      const sY = 1350 - sH - 40; 
+      const radius = 40; // Rayon de l'arrondi
+
       ctx.save();
+      
+      // Création du chemin arrondi (masque)
+      ctx.beginPath();
+      ctx.moveTo(sX + radius, sY);
+      ctx.lineTo(sX + sW - radius, sY);
+      ctx.quadraticCurveTo(sX + sW, sY, sX + sW, sY + radius);
+      ctx.lineTo(sX + sW, sY + sH - radius);
+      ctx.quadraticCurveTo(sX + sW, sY + sH, sX + sW - radius, sY + sH);
+      ctx.lineTo(sX + radius, sY + sH);
+      ctx.quadraticCurveTo(sX, sY + sH, sX, sY + sH - radius);
+      ctx.lineTo(sX, sY + radius);
+      ctx.quadraticCurveTo(sX, sY, sX + radius, sY);
+      ctx.closePath();
+      
+      // On clip pour que l'image respecte l'arrondi
+      ctx.clip();
+
+      // Application du miroir et dessin
       ctx.translate(sX + sW, sY);
       ctx.scale(-1, 1);
       drawCover(ctx, videoRef.current, 0, 0, sW, sH);
+      
       ctx.restore();
       
+      // Dessin de la bordure blanche par-dessus l'arrondi
+      ctx.beginPath();
+      ctx.lineWidth = 8;
       ctx.strokeStyle = "white";
-      ctx.lineWidth = 6;
-      ctx.strokeRect(sX, sY, sW, sH);
+      ctx.moveTo(sX + radius, sY);
+      ctx.lineTo(sX + sW - radius, sY);
+      ctx.quadraticCurveTo(sX + sW, sY, sX + sW, sY + radius);
+      ctx.lineTo(sX + sW, sY + sH - radius);
+      ctx.quadraticCurveTo(sX + sW, sY + sH, sX + sW - radius, sY + sH);
+      ctx.lineTo(sX + radius, sY + sH);
+      ctx.quadraticCurveTo(sX, sY + sH, sX, sY + sH - radius);
+      ctx.lineTo(sX, sY + radius);
+      ctx.quadraticCurveTo(sX, sY, sX + radius, sY);
+      ctx.stroke();
 
       stopAllStreams();
       handleUpload();
     } catch (err) {
-      alert("Sequence failed");
+      console.error(err);
       setStatus('idle');
     }
   };
@@ -143,20 +182,18 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
       if (onPost) onPost();
       window.location.reload();
     } catch (e: any) {
-      alert(e.message);
+      alert("Upload Error: " + e.message);
       setStatus('idle');
     }
   };
 
   return (
     <div className="w-full space-y-4 px-1">
-      
-      {/* OVERLAY CAPTURE */}
       {status === 'capturing' && (
         <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-between p-8">
           <div className="bg-white/10 backdrop-blur-md px-6 py-2 rounded-full border border-white/20 mt-4">
             <p className="text-white text-[10px] font-black uppercase tracking-widest">
-              {activeSide === 'back' ? '📸 Take your drink photo' : '🤳 Now Smile! (Auto-timer)'}
+              {activeSide === 'back' ? '📸 Step 1: Drink' : '🤳 Step 2: Smile!'}
             </p>
           </div>
 
@@ -168,7 +205,6 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
             />
           </div>
 
-          {/* SHUTTER : Visible uniquement pour la première photo */}
           <div className="pb-10 min-h-[120px] flex items-center justify-center">
             {activeSide === 'back' ? (
               <button 
@@ -186,7 +222,6 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
         </div>
       )}
 
-      {/* SÉLECTION BOISSONS */}
       <div className="flex flex-wrap justify-center gap-2 mb-6">
         {DRINK_OPTIONS.map((option) => (
           <button
@@ -209,7 +244,7 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
         <div className="flex items-center gap-2">
           <Camera01Icon size={18} />
           <span className="text-[11px] font-black uppercase tracking-[0.3em]">
-            {loading ? 'Camera...' : 'Capture BeReal Drink'}
+            {loading ? 'Loading...' : 'Capture BeReal Drink'}
           </span>
         </div>
       </button>
