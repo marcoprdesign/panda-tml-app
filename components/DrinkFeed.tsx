@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from 'react';
 import { supabase } from '@/supabase';
+import { MoreHorizontalIcon, Delete02Icon } from "hugeicons-react";
 
 interface DrinkFeedProps {
   archiveEventId?: string;
@@ -10,6 +11,7 @@ export default function DrinkFeed({ archiveEventId }: DrinkFeedProps) {
   const [drinks, setDrinks] = useState<any[]>([]);
   const [userId, setUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
   const fetchDrinks = async () => {
     setLoading(true);
@@ -73,6 +75,7 @@ export default function DrinkFeed({ archiveEventId }: DrinkFeedProps) {
     if (!confirmed) return;
     const { error } = await supabase.from('drinks').delete().eq('id', drinkId).eq('user_id', userId);
     if (!error) setDrinks(prev => prev.filter(d => d.id !== drinkId));
+    setOpenMenuId(null);
   };
 
   if (loading) return (
@@ -97,47 +100,73 @@ export default function DrinkFeed({ archiveEventId }: DrinkFeedProps) {
                 alt="Drink Archive" 
               />
               <div className="absolute inset-0 bg-gradient-to-t from-[#202231]/40 via-transparent to-transparent opacity-80" />
-              <div className="absolute top-5 left-5 flex items-center gap-3 bg-[#f6f6f9]/90 backdrop-blur-xl p-1.5 pr-6 rounded-[2.2rem] border border-white/50 shadow-lg">
-                <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#313449] shadow-sm bg-white">
-                  {drink.profiles?.avatar_url && (
-                    <img src={getUrl('avatars', drink.profiles.avatar_url)} className="w-full h-full object-cover" />
-                  )}
-                </div>
-                <div className="flex flex-col gap-1">
-  <div className="flex items-center gap-2">
-    <span className="text-[10px] font-black text-[#313449] uppercase tracking-widest leading-none">
-      {drink.profiles?.username}
-    </span>
-    <span className="text-[7px] font-bold text-[#8089b0] uppercase tracking-widest leading-none flex items-center gap-1">
-      • {new Date(drink.created_at).toLocaleDateString('en-GB', { 
-          day: 'numeric', 
-          month: 'short' 
-        })}
-      <span className="opacity-50">•</span> 
-      {new Date(drink.created_at).toLocaleTimeString([], { 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        })}
+              
+              {/* HEADER INFO */}
+<div className="absolute top-5 left-5 flex items-center gap-3 bg-[#f6f6f9]/90 backdrop-blur-xl p-1.5 pr-6 rounded-[2.2rem] border border-white/50 shadow-lg">
+  <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-[#313449] shadow-sm bg-white">
+    {drink.profiles?.avatar_url && (
+      <img src={getUrl('avatars', drink.profiles.avatar_url)} className="w-full h-full object-cover" />
+    )}
+  </div>
+  <div className="flex flex-col gap-1">
+    <div className="flex items-center gap-2">
+      <span className="text-[10px] font-black text-[#313449] uppercase tracking-widest leading-none">
+        {drink.profiles?.username}
+      </span>
+      <span className="text-[7px] font-bold text-[#8089b0] uppercase tracking-widest leading-none flex items-center gap-1">
+        • {new Date(drink.created_at).toLocaleDateString('en-GB', { 
+            day: 'numeric', 
+            month: 'short' 
+          })}
+        <span className="opacity-50">•</span> 
+        {new Date(drink.created_at).toLocaleTimeString([], { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          })}
+      </span>
+    </div>
+    <span className="text-[9px] font-black text-[#58618a] uppercase tracking-[0.2em] leading-none">
+      {drink.drink_type}
     </span>
   </div>
-  <span className="text-[9px] font-black text-[#58618a] uppercase tracking-[0.2em] leading-none">
-    {drink.drink_type}
-  </span>
 </div>
-              </div>
+
+              {/* BOUTON OPTIONS (...) */}
+              {isOwner && (
+                <div className="absolute top-6 right-6">
+                  <button 
+                    onClick={() => setOpenMenuId(openMenuId === drink.id ? null : drink.id)}
+                    className="p-3 bg-[#f6f6f9]/90 backdrop-blur-xl rounded-full border border-white/50 text-[#313449] shadow-lg active:scale-90 transition-all"
+                  >
+                    <MoreHorizontalIcon size={18} />
+                  </button>
+
+                  {/* MENU DÉROULANT */}
+                  {openMenuId === drink.id && (
+                    <>
+                      <div className="fixed inset-0 z-10" onClick={() => setOpenMenuId(null)} />
+                      <div className="absolute top-14 right-0 z-20 w-40 bg-[#f6f6f9] border border-white rounded-[1.5rem] shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+                        <button
+                          onClick={() => handleDelete(drink.id)}
+                          className="w-full flex items-center gap-3 px-4 py-4 text-red-500 hover:bg-red-50 transition-colors"
+                        >
+                          <Delete02Icon size={16} />
+                          <span className="text-[9px] font-black uppercase tracking-widest">Delete</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* LIKE BUTTON */}
               <div className="absolute bottom-6 left-6">
                 <button onClick={() => handleLike(drink.id)} className={`flex items-center gap-3 backdrop-blur-2xl p-3 px-6 rounded-[1.8rem] border transition-all duration-500 active:scale-90 shadow-xl ${isLiked ? 'bg-[#313449] border-[#313449] text-[#f6f6f9]' : 'bg-white/80 border-white text-[#313449]'}`}>
                   <span className={`text-sm transition-all duration-500 ${isLiked ? 'grayscale-0 scale-110' : 'grayscale opacity-40'}`}>❤️</span>
                   <span className="text-[11px] font-black uppercase tracking-widest">{count}</span>
                 </button>
               </div>
-              {isOwner && (
-                <div className="absolute bottom-6 right-6">
-                  <button onClick={() => handleDelete(drink.id)} className="flex items-center gap-3 bg-white/20 backdrop-blur-md p-3 px-6 rounded-[1.8rem] border border-white/30 text-white transition-all duration-300 active:scale-90 shadow-xl hover:bg-red-500/20 group/del">
-                    <span className="text-[11px] font-black uppercase tracking-widest opacity-80 group-hover/del:opacity-100 transition-opacity">🗑️</span>
-                  </button>
-                </div>
-              )}
+
             </div>
           );
         })
