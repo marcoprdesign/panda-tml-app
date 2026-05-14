@@ -106,16 +106,16 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
       // Timer auto pour le selfie (1.5s)
       await new Promise(r => setTimeout(r, 1500));
       
-      // --- CONFIGURATION SELFIE BAS À DROITE ARRONDI ---
-      const sW = 320; 
-      const sH = 420; 
-      const sX = 1080 - sW - 40; 
-      const sY = 1350 - sH - 40; 
-      const radius = 64; // Rayon de l'arrondi
+      // --- CONFIGURATION SELFIE BAS À DROITE TRÈS ARRONDI ---
+      const sW = 340; // Légèrement plus grand pour l'esthétique
+      const sH = 440; 
+      const sX = 1080 - sW - 50; 
+      const sY = 1350 - sH - 50; 
+      const radius = 80; // ARRONDISSEMENT AUGMENTÉ
 
       ctx.save();
       
-      // Création du chemin arrondi (masque)
+      // Création du masque très arrondi
       ctx.beginPath();
       ctx.moveTo(sX + radius, sY);
       ctx.lineTo(sX + sW - radius, sY);
@@ -128,19 +128,18 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
       ctx.quadraticCurveTo(sX, sY, sX + radius, sY);
       ctx.closePath();
       
-      // On clip pour que l'image respecte l'arrondi
       ctx.clip();
 
-      // Application du miroir et dessin
+      // Dessin du selfie
       ctx.translate(sX + sW, sY);
       ctx.scale(-1, 1);
       drawCover(ctx, videoRef.current, 0, 0, sW, sH);
       
       ctx.restore();
       
-      // Dessin de la bordure blanche par-dessus l'arrondi
+      // Bordure blanche épaisse et bien arrondie
       ctx.beginPath();
-      ctx.lineWidth = 8;
+      ctx.lineWidth = 10;
       ctx.strokeStyle = "white";
       ctx.moveTo(sX + radius, sY);
       ctx.lineTo(sX + sW - radius, sY);
@@ -192,12 +191,12 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
       {status === 'capturing' && (
         <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-between p-8">
           <div className="bg-white/10 backdrop-blur-md px-6 py-2 rounded-full border border-white/20 mt-4">
-            <p className="text-white text-[10px] font-black uppercase tracking-widest">
-              {activeSide === 'back' ? '📸 Step 1: Drink' : '🤳 Step 2: Smile!'}
+            <p className="text-white text-[10px] font-black uppercase tracking-widest text-center">
+              {activeSide === 'back' ? '📸 Step 1: The Drink' : '🤳 Step 2: Smile!'}
             </p>
           </div>
 
-          <div className="relative w-full aspect-[4/5] bg-neutral-900 rounded-[3rem] overflow-hidden border border-white/10">
+          <div className="relative w-full aspect-[4/5] bg-neutral-900 rounded-[3rem] overflow-hidden border border-white/10 shadow-2xl">
             <video 
               ref={videoRef} 
               playsInline muted autoPlay
@@ -215,13 +214,14 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
               </button>
             ) : (
               <div className="text-white/40 text-[9px] font-black uppercase tracking-[0.3em] animate-pulse">
-                Capturing selfie...
+                Taking Selfie...
               </div>
             )}
           </div>
         </div>
       )}
 
+      {/* Reste de la UI (Drink options & Main button) */}
       <div className="flex flex-wrap justify-center gap-2 mb-6">
         {DRINK_OPTIONS.map((option) => (
           <button
@@ -244,7 +244,7 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
         <div className="flex items-center gap-2">
           <Camera01Icon size={18} />
           <span className="text-[11px] font-black uppercase tracking-[0.3em]">
-            {loading ? 'Loading...' : 'Capture BeReal Drink'}
+            {loading ? 'Processing...' : 'Capture BeReal Drink'}
           </span>
         </div>
       </button>
