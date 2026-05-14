@@ -109,7 +109,7 @@ export default function DrinkFeed({ archiveEventId }: DrinkFeedProps) {
       {drink.profiles?.username}
     </span>
     <span className="text-[7px] font-bold text-[#8089b0] uppercase tracking-widest leading-none flex items-center gap-1">
-       {new Date(drink.created_at).toLocaleDateString('en-GB', { 
+      • {new Date(drink.created_at).toLocaleDateString('en-GB', { 
           day: 'numeric', 
           month: 'short' 
         })}

@@ -1,131 +1,164 @@
 "use client";
 import { useState } from 'react';
 import { supabase } from '@/supabase';
+import { Camera01Icon } from "hugeicons-react";
 
-const TYPES = [
-  'BEER 🍺', 
-  'COCKTAIL 🍸', 
-  'WINE 🍷',
-  'SHOT 🥃', 
-  'CHAMPAGNE 🥂',
-  'SOFT 🥤',
-  'WATER 💧',
+const DRINK_OPTIONS = [
+  { id: 'BEER', label: 'Beer', emoji: '🍺', points: 1 },
+  { id: 'LARGE_BEER', label: 'Large Beer', emoji: '🍻', points: 2 },
+  { id: 'COCKTAIL', label: 'Cocktail', emoji: '🍸', points: 1 },
+  { id: 'WINE', label: 'Wine', emoji: '🍷', points: 1 },
+  { id: 'SHOT', label: 'Shot', emoji: '🥃', points: 1 },
+  { id: 'SOFT', label: 'Soft', emoji: '🥤', points: 1 },
+  { id: 'WATER', label: 'Water', emoji: '💧', points: 0 },
 ];
 
-export default function PostDrink({ userProfile }: { userProfile: any }) {
+export default function PostDrink({ userProfile, onPost }: { userProfile: any, onPost?: () => void }) {
   const [loading, setLoading] = useState(false);
-  const [type, setType] = useState('BEER 🍺');
+  const [selected, setSelected] = useState(DRINK_OPTIONS[0]);
+  const [status, setStatus] = useState<'idle' | 'capturing'>('idle');
 
-  const handleUpload = async (e: any) => {
-    const file = e.target.files[0];
-    if (!file || !userProfile) return;
-    
+  const captureAndUpload = async () => {
+    // 1. SÉCURITÉ HTTPS / MEDIA DEVICES
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      alert("Camera access requires HTTPS and a modern browser.");
+      return;
+    }
+
     setLoading(true);
+    setStatus('capturing');
 
     try {
-      // 1. RÉCUPÉRATION DE L'EVENT ACTIF (Invisible pour l'utilisateur)
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const video = document.createElement('video');
+      video.setAttribute('playsinline', 'true');
+      video.muted = true;
+
+      // Format Portrait 4:5
+      canvas.width = 1080;
+      canvas.height = 1350;
+
+      // 2. CAPTURE CAMÉRA ARRIÈRE (Le Drink)
+      const streamBack = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'environment', width: { ideal: 1080 } } 
+      });
+      video.srcObject = streamBack;
+      await video.play();
+      await new Promise(r => setTimeout(r, 1000)); // Focus
+      ctx?.drawImage(video, 0, 0, 1080, 1350);
+      streamBack.getTracks().forEach(t => t.stop());
+
+      // 3. CAPTURE CAMÉRA AVANT (Le Selfie)
+      const streamFront = await navigator.mediaDevices.getUserMedia({ 
+        video: { facingMode: 'user', width: { ideal: 400 } } 
+      });
+      video.srcObject = streamFront;
+      await video.play();
+      await new Promise(r => setTimeout(r, 800));
+
+      if (ctx) {
+        const sW = 320, sH = 420, sX = 40, sY = 40;
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = "rgba(0,0,0,0.4)";
+        ctx.strokeStyle = "white";
+        ctx.lineWidth = 6;
+        ctx.strokeRect(sX, sY, sW, sH);
+        ctx.drawImage(video, sX, sY, sW, sH);
+      }
+      streamFront.getTracks().forEach(t => t.stop());
+
+      // 4. PRÉPARATION DU BLOB
+      const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, 'image/jpeg', 0.8));
+      if (!blob) throw new Error("Canvas export failed");
+
+      // 5. ENVOI SUPABASE
       const { data: activeEvent } = await supabase
         .from('events')
         .select('id')
         .eq('is_active', true)
         .single();
 
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${userProfile.id}-${Date.now()}.${fileExt}`;
+      const fileName = `${userProfile.id}-${Date.now()}.jpg`;
 
-      // 2. UPLOAD DE L'IMAGE
-      const { data: storageData, error: storageError } = await supabase.storage
+      const { error: storageError } = await supabase.storage
         .from('drinks')
-        .upload(fileName, file, {
-          cacheControl: '3600',
-          upsert: false
-        });
+        .upload(fileName, blob);
 
       if (storageError) throw storageError;
 
-      // 3. INSERTION AVEC EVENT_ID
-      const { error: dbError } = await supabase
-        .from('drinks')
-        .insert([{
-          user_id: userProfile.id,
-          drink_type: type,
-          photo_url: fileName,
-          event_id: activeEvent?.id || 'tml-2024' // Utilise l'event actif ou l'ancien par défaut
-        }]);
+      const { error: dbError } = await supabase.from('drinks').insert([{
+        user_id: userProfile.id,
+        drink_type: `${selected.label} ${selected.emoji}`,
+        points: selected.points,
+        photo_url: fileName,
+        event_id: activeEvent?.id || 'tml-2024'
+      }]);
 
       if (dbError) throw dbError;
 
+      if (onPost) onPost();
       window.location.reload();
-      
+
     } catch (error: any) {
-      console.error("Erreur:", error);
-      alert(`Erreur: ${error.message || "Impossible d'uploader"}`);
+      console.error(error);
+      alert(`Error: ${error.message}`);
       setLoading(false);
+      setStatus('idle');
     }
   };
 
   return (
     <div className="w-full space-y-4 animate-in fade-in slide-in-from-bottom-6 duration-700 px-1">
-      
-      {/* HEADER */}
-      <div className="px-2 mb-2">
-        <h2 className="text-2xl font-black italic uppercase tracking-tighter text-[#313449]">
-          Record Drink
-        </h2>
-        <p className="text-[9px] font-black text-[#8089b0] uppercase tracking-[0.3em] mt-1">
-          Submit to the journal, <span className="text-[#313449]">{userProfile?.username || 'Traveler'}</span>
-        </p>
+      {/* SÉLECTION BOISSONS */}
+      <div className="flex flex-wrap justify-center gap-2 mb-6">
+        {DRINK_OPTIONS.map((option) => {
+          const isActive = selected.id === option.id;
+          return (
+            <button
+              key={option.id}
+              onClick={() => setSelected(option)}
+              className={`px-4 py-3 rounded-2xl border transition-all flex flex-col items-center gap-1 active:scale-95 duration-300 min-w-[80px]
+                ${isActive 
+                  ? 'border-[#313449] bg-[#313449] text-[#f6f6f9] shadow-lg shadow-[#313449]/20' 
+                  : 'border-[#d3d6e4] bg-white text-[#58618a]'}`}
+            >
+              <span className="text-xl">{option.emoji}</span>
+              <span className="text-[8px] font-[1000] uppercase tracking-widest">{option.label}</span>
+              <span className={`text-[7px] font-black ${isActive ? 'text-white/50' : 'text-[#8089b0]'}`}>
+                {option.points} PTS
+              </span>
+            </button>
+          );
+        })}
       </div>
 
-      {/* CONTENEUR */}
-      <div className="w-full bg-[#ffffff] rounded-[2.5rem] border border-[#d3d6e4] p-6 shadow-sm relative overflow-hidden">
-        
-        {/* SÉLECTEUR DE TYPE */}
-        <div className="flex flex-wrap justify-center gap-2 mb-8 relative z-10">
-          {TYPES.map((t) => {
-            const label = t.split(' ')[0];
-            const emoji = t.split(' ')[1];
-            const isActive = type === t;
-
-            return (
-              <button
-                key={t}
-                type="button"
-                onClick={() => setType(t)}
-                className={`px-4 py-2.5 rounded-xl border transition-all flex items-center gap-2 active:scale-95 duration-300
-                  ${isActive 
-                    ? 'border-[#313449] bg-[#313449] text-[#f6f6f9] shadow-lg shadow-[#313449]/20' 
-                    : 'border-[#d3d6e4] bg-[#ebecf3] text-[#58618a]'}`}
-              >
-                <span className="text-[9px] font-black uppercase tracking-widest leading-none">
-                  {label}
-                </span>
-                <span className="text-sm leading-none">
-                  {emoji}
-                </span>
-              </button>
-            );
-          })}
+      {/* BOUTON CAPTURE DUAL (Bereal Style) */}
+      <button 
+        onClick={captureAndUpload}
+        disabled={loading}
+        className={`flex flex-col items-center justify-center w-full py-5 rounded-[2rem] text-[#f6f6f9] transition-all shadow-xl active:scale-95
+        ${loading ? 'bg-[#313449]/50 cursor-not-allowed' : 'bg-[#202231] hover:bg-[#313449] shadow-[#202231]/20'}`}
+      >
+        <div className="flex items-center gap-2">
+          {loading ? (
+             <span className="text-[11px] font-black uppercase tracking-[0.3em] animate-pulse">
+               {status === 'capturing' ? 'Stay Still...' : 'Processing...'}
+             </span>
+          ) : (
+            <>
+              <div className="flex -space-x-1">
+                <Camera01Icon size={18} />
+              </div>
+              <span className="text-[11px] font-black uppercase tracking-[0.3em]">Capture Drink</span>
+            </>
+          )}
         </div>
+      </button>
 
-        {/* BOUTON D'ACTION */}
-        <label className={`flex items-center justify-center w-full py-5 rounded-[2rem] text-[#f6f6f9] text-[11px] font-black uppercase tracking-[0.3em] cursor-pointer active:scale-95 transition-all shadow-xl relative z-10
-          ${loading ? 'bg-[#313449]/50 cursor-not-allowed' : 'bg-[#202231] hover:bg-[#313449] shadow-[#202231]/20'}`}>
-          {loading ? 'Transcribing...' : '📸 Capture the moment'}
-          <input 
-            type="file" 
-            accept="image/*" 
-            capture="environment" 
-            className="hidden" 
-            onChange={handleUpload} 
-            disabled={loading} 
-          />
-        </label>
-
-        <p className="text-[8px] text-[#8089b0] text-center mt-5 uppercase tracking-[0.4em] font-bold">
-          Archiving to the sacred feed
-        </p>
-      </div>
+      <p className="text-[8px] text-[#8089b0] font-bold uppercase text-center tracking-widest opacity-60">
+        Front & Back cameras will trigger automatically
+      </p>
     </div>
   );
 }
