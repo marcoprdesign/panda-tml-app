@@ -61,13 +61,17 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
     const constraints = {
       video: { facingMode: mode, width: { ideal: 1080 }, height: { ideal: 1350 } }
     };
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
-    streamRef.current = stream;
-    if (videoRef.current) {
-      videoRef.current.srcObject = stream;
-      setTimeout(() => {
-        videoRef.current?.play().catch(e => console.error("Play error:", e));
-      }, 100);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        setTimeout(() => {
+          videoRef.current?.play().catch(e => console.error("Play error:", e));
+        }, 100);
+      }
+    } catch (err) {
+      alert("Erreur d'accès à la caméra");
     }
   };
 
@@ -81,14 +85,8 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
     canvas.height = 1350;
     canvasRef.current = canvas;
 
-    try {
-      await setupCamera('environment');
-    } catch (err) {
-      alert("Error starting camera");
-      setStatus('idle');
-    } finally {
-      setLoading(false);
-    }
+    await setupCamera('environment');
+    setLoading(false);
   };
 
   const handleShutterClick = async () => {
@@ -99,23 +97,25 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
       // 1. Capture du Drink (Arrière)
       drawCover(ctx, videoRef.current, 0, 0, 1080, 1350);
 
-      // 2. Bascule auto vers Selfie
+      // 2. Bascule vers Selfie
       setActiveSide('front');
       await setupCamera('user');
       
       // Timer auto pour le selfie (1.5s)
       await new Promise(r => setTimeout(r, 1500));
       
-      // --- CONFIGURATION SELFIE BAS À DROITE TRÈS ARRONDI ---
-      const sW = 340; // Légèrement plus grand pour l'esthétique
-      const sH = 440; 
-      const sX = 1080 - sW - 50; 
-      const sY = 1350 - sH - 50; 
-      const radius = 80; // ARRONDISSEMENT AUGMENTÉ
+      // --- GÉOMÉTRIE PRÉCISE ---
+      const margin = 40; 
+      const parentRadius = 120; // Rayon estimé du coin du post global
+      const sW = 320; 
+      const sH = 420; 
+      const sX = 1080 - sW - margin; 
+      const sY = 1350 - sH - margin; 
+      const radius = parentRadius - margin; // Courbure parallèle (80px)
 
       ctx.save();
       
-      // Création du masque très arrondi
+      // Masque arrondi
       ctx.beginPath();
       ctx.moveTo(sX + radius, sY);
       ctx.lineTo(sX + sW - radius, sY);
@@ -127,19 +127,17 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
       ctx.lineTo(sX, sY + radius);
       ctx.quadraticCurveTo(sX, sY, sX + radius, sY);
       ctx.closePath();
-      
       ctx.clip();
 
-      // Dessin du selfie
+      // Dessin Selfie (Effet Miroir)
       ctx.translate(sX + sW, sY);
       ctx.scale(-1, 1);
       drawCover(ctx, videoRef.current, 0, 0, sW, sH);
-      
       ctx.restore();
       
-      // Bordure blanche épaisse et bien arrondie
+      // Bordure Blanche
       ctx.beginPath();
-      ctx.lineWidth = 10;
+      ctx.lineWidth = 12;
       ctx.strokeStyle = "white";
       ctx.moveTo(sX + radius, sY);
       ctx.lineTo(sX + sW - radius, sY);
@@ -164,7 +162,7 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
     setStatus('uploading');
     try {
       const blob = await new Promise<Blob | null>(res => canvasRef.current?.toBlob(res, 'image/jpeg', 0.8));
-      if (!blob) throw new Error("Export failed");
+      if (!blob) throw new Error("Erreur de rendu");
 
       const { data: activeEvent } = await supabase.from('events').select('id').eq('is_active', true).single();
       const fileName = `${userProfile.id}-${Date.now()}.jpg`;
@@ -181,7 +179,7 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
       if (onPost) onPost();
       window.location.reload();
     } catch (e: any) {
-      alert("Upload Error: " + e.message);
+      alert(e.message);
       setStatus('idle');
     }
   };
@@ -191,8 +189,8 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
       {status === 'capturing' && (
         <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-between p-8">
           <div className="bg-white/10 backdrop-blur-md px-6 py-2 rounded-full border border-white/20 mt-4">
-            <p className="text-white text-[10px] font-black uppercase tracking-widest text-center">
-              {activeSide === 'back' ? '📸 Step 1: The Drink' : '🤳 Step 2: Smile!'}
+            <p className="text-white text-[10px] font-black uppercase tracking-widest">
+              {activeSide === 'back' ? '📸 STEP 1: DRINK' : '🤳 STEP 2: SMILE!'}
             </p>
           </div>
 
@@ -214,14 +212,13 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
               </button>
             ) : (
               <div className="text-white/40 text-[9px] font-black uppercase tracking-[0.3em] animate-pulse">
-                Taking Selfie...
+                Auto-capturing selfie...
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Reste de la UI (Drink options & Main button) */}
       <div className="flex flex-wrap justify-center gap-2 mb-6">
         {DRINK_OPTIONS.map((option) => (
           <button
@@ -244,7 +241,7 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
         <div className="flex items-center gap-2">
           <Camera01Icon size={18} />
           <span className="text-[11px] font-black uppercase tracking-[0.3em]">
-            {loading ? 'Processing...' : 'Capture BeReal Drink'}
+            {loading ? 'Opening...' : 'Post a BeReal Drink'}
           </span>
         </div>
       </button>
