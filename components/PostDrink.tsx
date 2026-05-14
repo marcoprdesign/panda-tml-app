@@ -1,7 +1,7 @@
 "use client";
 import { useState, useRef } from 'react';
 import { supabase } from '@/supabase';
-import { Camera01Icon, ReloadIcon } from "hugeicons-react";
+import { Camera01Icon, LinkBackwardIcon, CircleIcon } from "hugeicons-react";
 
 const DRINK_OPTIONS = [
   { id: 'BEER', label: 'Beer', emoji: '🍺', points: 1 },
@@ -18,63 +18,78 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
   const [selected, setSelected] = useState(DRINK_OPTIONS[0]);
   const [status, setStatus] = useState<'idle' | 'back' | 'front' | 'uploading'>('idle');
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
 
-  const captureAndUpload = async () => {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      alert("Camera access requires HTTPS.");
-      return;
+  // Initialisation du Canvas caché
+  const getCanvas = () => {
+    if (!canvasRef.current) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 1080;
+      canvas.height = 1350;
+      canvasRef.current = canvas;
+    }
+    return canvasRef.current;
+  };
+
+  const startCapture = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) return alert("HTTPS Required");
+    setLoading(true);
+    await setupCamera('environment');
+    setStatus('back');
+  };
+
+  const setupCamera = async (mode: 'user' | 'environment') => {
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    const newStream = await navigator.mediaDevices.getUserMedia({ 
+      video: { facingMode: mode, width: { ideal: 1080 } } 
+    });
+    setStream(newStream);
+    if (videoRef.current) {
+      videoRef.current.srcObject = newStream;
+      await videoRef.current.play();
+    }
+  };
+
+  const takeFirstPhoto = async () => {
+    const canvas = getCanvas();
+    const ctx = canvas.getContext('2d');
+    if (ctx && videoRef.current) {
+      ctx.drawImage(videoRef.current, 0, 0, 1080, 1350);
+    }
+    // Switch vers Selfie
+    setStatus('front');
+    await setupCamera('user');
+  };
+
+  const takeSecondPhoto = async () => {
+    const canvas = getCanvas();
+    const ctx = canvas.getContext('2d');
+    if (ctx && videoRef.current) {
+      const sW = 320, sH = 420, sX = 40, sY = 40;
+      ctx.save();
+      // On dessine le selfie en miroir sur le canvas car c'est la cam frontale
+      ctx.translate(sX + sW, sY);
+      ctx.scale(-1, 1);
+      ctx.drawImage(videoRef.current, 0, 0, sW, sH);
+      ctx.restore();
+      
+      // Cadre blanc
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = "rgba(0,0,0,0.4)";
+      ctx.strokeStyle = "white";
+      ctx.lineWidth = 6;
+      ctx.strokeRect(sX, sY, sW, sH);
     }
 
-    setLoading(true);
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    canvas.width = 1080;
-    canvas.height = 1350;
+    if (stream) stream.getTracks().forEach(t => t.stop());
+    handleFinalUpload();
+  };
 
+  const handleFinalUpload = async () => {
+    setStatus('uploading');
     try {
-      // --- 1. CAPTURE ARRIÈRE (DRINK) ---
-      setStatus('back');
-      const streamBack = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'environment', width: { ideal: 1080 } } 
-      });
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = streamBack;
-        await videoRef.current.play();
-      }
-
-      // On attend 2 secondes pour que l'utilisateur cadre son verre
-      await new Promise(r => setTimeout(r, 2000));
-      ctx?.drawImage(videoRef.current!, 0, 0, 1080, 1350);
-      streamBack.getTracks().forEach(t => t.stop());
-
-      // --- 2. CAPTURE AVANT (SELFIE) ---
-      setStatus('front');
-      const streamFront = await navigator.mediaDevices.getUserMedia({ 
-        video: { facingMode: 'user', width: { ideal: 400 } } 
-      });
-
-      if (videoRef.current) {
-        videoRef.current.srcObject = streamFront;
-        await videoRef.current.play();
-      }
-
-      // On attend 2 secondes pour le selfie
-      await new Promise(r => setTimeout(r, 2000));
-      
-      if (ctx) {
-        const sW = 320, sH = 420, sX = 40, sY = 40;
-        ctx.shadowBlur = 15;
-        ctx.shadowColor = "rgba(0,0,0,0.4)";
-        ctx.strokeStyle = "white";
-        ctx.lineWidth = 6;
-        ctx.strokeRect(sX, sY, sW, sH);
-        ctx.drawImage(videoRef.current!, sX, sY, sW, sH);
-      }
-      streamFront.getTracks().forEach(t => t.stop());
-
-      // --- 3. ENVOI ---
-      setStatus('uploading');
+      const canvas = getCanvas();
       const blob = await new Promise<Blob | null>(res => canvas.toBlob(res, 'image/jpeg', 0.8));
       if (!blob) throw new Error("Export failed");
 
@@ -92,75 +107,82 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
 
       if (onPost) onPost();
       window.location.reload();
-
-    } catch (error: any) {
-      alert(`Error: ${error.message}`);
-      setLoading(false);
+    } catch (e: any) {
+      alert(e.message);
       setStatus('idle');
+      setLoading(false);
     }
   };
 
   return (
-    <div className="w-full space-y-4 animate-in fade-in slide-in-from-bottom-6 duration-700 px-1">
+    <div className="w-full space-y-4 px-1">
       
-      {/* OVERLAY DE PREVIEW (S'affiche pendant la capture) */}
-      {status !== 'idle' && (
-        <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center p-6 animate-in fade-in duration-300">
-          <div className="relative w-full aspect-[4/5] bg-[#1a1a1a] rounded-[2.5rem] overflow-hidden border-2 border-white/10 shadow-2xl">
+      {/* OVERLAY CAMERA */}
+      {status !== 'idle' && status !== 'uploading' && (
+        <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-between p-8">
+          <div className="w-full flex justify-center pt-4">
+             <div className="bg-white/10 backdrop-blur-md px-6 py-2 rounded-full border border-white/20">
+                <p className="text-white text-[10px] font-black uppercase tracking-widest">
+                  {status === 'back' ? 'Step 1: The Drink' : 'Step 2: The Selfie'}
+                </p>
+             </div>
+          </div>
+
+          <div className="relative w-full aspect-[4/5] bg-[#1a1a1a] rounded-[3rem] overflow-hidden border border-white/10 shadow-2xl">
             <video 
               ref={videoRef} 
               playsInline 
               muted 
-              className="w-full h-full object-cover scale-x-[-1] flip-horizontal" // On flip pour le selfie, à ajuster selon la cam
-              style={{ transform: status === 'back' ? 'scaleX(1)' : 'scaleX(-1)' }}
+              className={`w-full h-full object-cover ${status === 'front' ? 'scale-x-[-1]' : ''}`}
             />
-            
-            {/* INDICATEUR DE STATUS */}
-            <div className="absolute inset-0 flex flex-col items-center justify-end pb-12 bg-gradient-to-t from-black/60 to-transparent">
-              <div className="bg-white/10 backdrop-blur-md px-6 py-3 rounded-full border border-white/20">
-                <p className="text-white text-xs font-black uppercase tracking-[0.2em] animate-pulse">
-                  {status === 'back' ? '📸 Point at your drink' : '🤳 Smile for selfie'}
-                </p>
-              </div>
-            </div>
+          </div>
+
+          {/* BOUTON DECLENCHEUR */}
+          <div className="pb-12">
+            <button 
+              onClick={status === 'back' ? takeFirstPhoto : takeSecondPhoto}
+              className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition-transform"
+            >
+              <div className="w-16 h-16 border-4 border-black rounded-full" />
+            </button>
           </div>
         </div>
       )}
 
       {/* SÉLECTION BOISSONS */}
       <div className="flex flex-wrap justify-center gap-2 mb-6">
-        {DRINK_OPTIONS.map((option) => {
-          const isActive = selected.id === option.id;
-          return (
-            <button
-              key={option.id}
-              onClick={() => setSelected(option)}
-              className={`px-4 py-3 rounded-2xl border transition-all flex flex-col items-center gap-1 active:scale-95 duration-300 min-w-[80px]
-                ${isActive ? 'border-[#313449] bg-[#313449] text-[#f6f6f9]' : 'border-[#d3d6e4] bg-white text-[#58618a]'}`}
-            >
-              <span className="text-xl">{option.emoji}</span>
-              <span className="text-[8px] font-[1000] uppercase tracking-widest">{option.label}</span>
-            </button>
-          );
-        })}
+        {DRINK_OPTIONS.map((option) => (
+          <button
+            key={option.id}
+            onClick={() => setSelected(option)}
+            className={`px-4 py-3 rounded-2xl border transition-all flex flex-col items-center gap-1 min-w-[80px]
+              ${selected.id === option.id ? 'border-[#313449] bg-[#313449] text-[#f6f6f9]' : 'border-[#d3d6e4] bg-white text-[#58618a]'}`}
+          >
+            <span className="text-xl">{option.emoji}</span>
+            <span className="text-[8px] font-[1000] uppercase tracking-widest">{option.label}</span>
+          </button>
+        ))}
       </div>
 
       <button 
-        onClick={captureAndUpload}
+        onClick={startCapture}
         disabled={loading}
-        className="flex flex-col items-center justify-center w-full py-5 rounded-[2rem] text-[#f6f6f9] bg-[#202231] shadow-xl active:scale-95"
+        className="flex flex-col items-center justify-center w-full py-5 rounded-[2rem] text-[#f6f6f9] bg-[#202231] shadow-xl active:scale-95 transition-all"
       >
         <div className="flex items-center gap-2">
           <Camera01Icon size={18} />
           <span className="text-[11px] font-black uppercase tracking-[0.3em]">
-            {loading ? 'Processing...' : 'Take BeReal Drink'}
+            {loading ? 'Camera Loading...' : 'Capture BeReal Drink'}
           </span>
         </div>
       </button>
 
-      <p className="text-[8px] text-[#8089b0] font-bold uppercase text-center tracking-widest opacity-60">
-        Live preview will open for both shots
-      </p>
+      {status === 'uploading' && (
+        <div className="fixed inset-0 z-[110] bg-[#313449]/90 backdrop-blur-sm flex flex-col items-center justify-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-4 border-white/20 border-t-white mb-4" />
+            <p className="text-white text-[10px] font-black uppercase tracking-widest">Archiving your drink...</p>
+        </div>
+      )}
     </div>
   );
 }
