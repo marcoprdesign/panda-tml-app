@@ -111,7 +111,7 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
       const sH = 420; 
       const sX = 1080 - sW - 40; 
       const sY = 1350 - sH - 40; 
-      const radius = 40; // Rayon de l'arrondi
+      const radius = 64; // Rayon de l'arrondi
 
       ctx.save();
       
