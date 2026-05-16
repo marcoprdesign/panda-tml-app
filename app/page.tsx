@@ -89,19 +89,19 @@ export default function Home() {
         {activeTab === 'flunky' && <div className="mt-6 animate-in fade-in duration-500"><FlunkyBall /></div>}
       </div>
 
-             {/* --- BOTTOM SHEET OVERLAY (CINEMATIC SLOW) --- */}
+             {/* --- BOTTOM SHEET OVERLAY --- */}
       {isSheetOpen && (
         <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] animate-in fade-in duration-1000 ease-in-out"
+          className="fixed inset-0 bg-black/60 backdrop-blur-md z-[60] animate-in fade-in duration-700 ease-out"
           onClick={() => setIsSheetOpen(false)}
         >
           <div 
-            className="absolute bottom-0 left-0 right-0 bg-[#f6f6f9] rounded-t-[3rem] p-6 pb-12 shadow-[0_-20px_60px_rgba(0,0,0,0.3)] z-[70] 
-                       animate-in slide-in-from-bottom-full duration-1000 ease-[cubic-bezier(0.16,1,0.3,1)]"
+            className="absolute bottom-0 left-0 right-0 bg-[#f6f6f9] rounded-t-[3rem] p-6 pb-12 shadow-[0_-20px_50px_rgba(0,0,0,0.2)] z-[70] 
+                       animate-in slide-in-from-bottom-full duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]"
             onClick={(e) => e.stopPropagation()}
           >
             {/* Handle visuel style iOS */}
-            <div className="w-12 h-1.5 bg-[#d3d6e4] rounded-full mx-auto mb-10 mt-1" />
+            <div className="w-12 h-1.5 bg-[#d3d6e4] rounded-full mx-auto mb-8 mt-1" />
             
             {/* Bouton de fermeture discret */}
             <div className="absolute top-8 right-8">
@@ -113,8 +113,8 @@ export default function Home() {
               </button>
             </div>
             
-            {/* Contenu - Apparition très douce et légèrement décalée */}
-            <div className="animate-in fade-in duration-[1200ms] delay-300 ease-out">
+            {/* Contenu avec un léger délai d'apparition pour plus de finesse */}
+            <div className="animate-in fade-in duration-1000 delay-200">
               <PostDrink userProfile={profile} onPost={() => setIsSheetOpen(false)} />
             </div>
           </div>

@@ -163,13 +163,16 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
   const handleUpload = async () => {
     setStatus('uploading');
     try {
-      const blob = await new Promise<Blob | null>(res => canvasRef.current?.toBlob(res, 'image/jpeg', 0.8));
+      const blob = await new Promise<Blob | null>(res => canvasRef.current?.toBlob(res, 'image/jpeg', 0.45));
       if (!blob) throw new Error("Export failed");
 
       const { data: activeEvent } = await supabase.from('events').select('id').eq('is_active', true).single();
       const fileName = `${userProfile.id}-${Date.now()}.jpg`;
 
-      await supabase.storage.from('drinks').upload(fileName, blob);
+      await supabase.storage.from('drinks').upload(fileName, blob, {
+  cacheControl: '31536000', // Durée en secondes (1 an)
+  upsert: false
+});
       await supabase.from('drinks').insert([{
         user_id: userProfile.id,
         drink_type: `${selected.label} ${selected.emoji}`,
@@ -244,7 +247,7 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
         <div className="flex items-center gap-2">
           <Camera01Icon size={18} />
           <span className="text-[11px] font-black uppercase tracking-[0.3em]">
-            {loading ? 'Processing...' : 'Capture BeReal Drink'}
+            {loading ? 'Processing...' : 'Capture your Drink'}
           </span>
         </div>
       </button>

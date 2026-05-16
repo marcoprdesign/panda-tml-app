@@ -75,12 +75,12 @@ export default function StepsFeature({ userProfile, onBack }: { userProfile: any
     <div className="space-y-6 animate-in slide-in-from-right duration-300 pb-10">
       
 
-{/* HEADER FAQ */}
+    {/* HEADER STEPS */}
       <div className="flex items-center gap-4 mb-8">
         <button onClick={onBack} className="p-2 bg-[#ebecf3] rounded-full text-[#313449]">
           <ArrowDown01Icon size={20} className="rotate-90" />
         </button>
-        <h2 className="text-xl font-black italic uppercase tracking-tighter text-[#313449]">Dumb FAQ</h2>
+        <h2 className="text-xl font-black italic uppercase tracking-tighter text-[#313449]">Add your steps</h2>
       </div>
 
       
