@@ -1,20 +1,45 @@
 "use client";
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { supabase } from '@/supabase';
 import { Search01Icon, ArrowDown01Icon } from "hugeicons-react";
 
-const DUMB_QUESTIONS = [
-  { q: "Is water wet at Tomorrowland?", a: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Vestibulum ut convallis léo." },
-  { q: "Can I pay with real pandas?", a: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Duis aute irure dolor in reprehenderit." },
-  { q: "Where is the 'Secret Stage' everyone talks about?", a: "Lorem ipsum dolor sit amet, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua." },
-  { q: "How many beers is too many beers?", a: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut enim ad minim veniam." }
-];
+interface FAQItem {
+  id: string | number;
+  q: string;
+  a: string;
+}
 
 export default function FAQ({ onBack }: { onBack: () => void }) {
+  const [questions, setQuestions] = useState<FAQItem[]>([]);
   const [search, setSearch] = useState("");
   const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const filteredFaq = DUMB_QUESTIONS.filter(item => 
-    item.q.toLowerCase().includes(search.toLowerCase())
+  // Récupération des données depuis la table Supabase
+  const fetchFAQ = async () => {
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('faq')
+        .select('id, q, a')
+        // Tu peux ajouter un .order('q', { ascending: true }) si tu veux trier par ordre alphabétique
+        
+      if (error) throw error;
+      if (data) setQuestions(data);
+    } catch (err) {
+      console.error("Error fetching FAQ:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchFAQ();
+  }, []);
+
+  // Filtrage avec une sécurité au cas où 'q' est indéfini
+  const filteredFaq = questions.filter(item => 
+    item.q?.toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -40,30 +65,40 @@ export default function FAQ({ onBack }: { onBack: () => void }) {
 
       {/* LISTE DES QUESTIONS */}
       <div className="space-y-4">
-        {filteredFaq.map((item, index) => (
-          <div key={index} className="bg-white rounded-[1.8rem] border border-[#d3d6e4]/50 overflow-hidden transition-all">
-            <button 
-              onClick={() => setOpenIndex(openIndex === index ? null : index)}
-              className="w-full p-5 flex justify-between items-center text-left"
-            >
-              <span className="text-[11px] font-black uppercase tracking-wide text-[#313449] leading-tight pr-4">
-                {item.q}
-              </span>
-              <ArrowDown01Icon 
-                size={16} 
-                className={`transition-transform duration-300 ${openIndex === index ? 'rotate-180' : ''}`} 
-              />
-            </button>
-            
-            {openIndex === index && (
-              <div className="px-5 pb-5 animate-in fade-in zoom-in-95 duration-300">
-                <p className="text-[12px] text-[#58618a] leading-relaxed font-medium">
-                  {item.a}
-                </p>
-              </div>
-            )}
+        {loading ? (
+          <div className="flex justify-center py-10">
+            <div className="w-5 h-5 border-2 border-[#d3d6e4] border-t-[#313449] rounded-full animate-spin" />
           </div>
-        ))}
+        ) : filteredFaq.length > 0 ? (
+          filteredFaq.map((item, index) => (
+            <div key={item.id || index} className="bg-white rounded-[1.8rem] border border-[#d3d6e4]/50 overflow-hidden transition-all">
+              <button 
+                onClick={() => setOpenIndex(openIndex === index ? null : index)}
+                className="w-full p-5 flex justify-between items-center text-left"
+              >
+                <span className="text-[11px] font-black uppercase tracking-wide text-[#313449] leading-tight pr-4">
+                  {item.q}
+                </span>
+                <ArrowDown01Icon 
+                  size={16} 
+                  className={`transition-transform duration-300 ${openIndex === index ? 'rotate-180' : ''}`} 
+                />
+              </button>
+              
+              {openIndex === index && (
+                <div className="px-5 pb-5 animate-in fade-in zoom-in-95 duration-300">
+                  <p className="text-[12px] text-[#58618a] leading-relaxed font-medium">
+                    {item.a}
+                  </p>
+                </div>
+              )}
+            </div>
+          ))
+        ) : (
+          <div className="py-10 text-center uppercase text-[10px] font-black text-[#8089b0] tracking-widest">
+            No dumb questions found.
+          </div>
+        )}
       </div>
     </div>
   );

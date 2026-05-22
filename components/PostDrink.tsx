@@ -37,23 +37,26 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
     return () => stopAllStreams();
   }, []);
 
-  const drawCover = (ctx: CanvasRenderingContext2D, video: HTMLVideoElement, x: number, y: number, w: number, h: number) => {
-    const videoRatio = video.videoWidth / video.videoHeight;
+  const drawCover = (ctx: CanvasRenderingContext2D, source: HTMLVideoElement | HTMLCanvasElement, x: number, y: number, w: number, h: number) => {
+    const srcWidth = source instanceof HTMLVideoElement ? source.videoWidth : source.width;
+    const srcHeight = source instanceof HTMLVideoElement ? source.videoHeight : source.height;
+
+    const videoRatio = srcWidth / srcHeight;
     const targetRatio = w / h;
     let sw, sh, sx, sy;
 
     if (videoRatio > targetRatio) {
-      sh = video.videoHeight;
-      sw = video.videoHeight * targetRatio;
-      sx = (video.videoWidth - sw) / 2;
+      sh = srcHeight;
+      sw = srcHeight * targetRatio;
+      sx = (srcWidth - sw) / 2;
       sy = 0;
     } else {
-      sw = video.videoWidth;
-      sh = video.videoWidth / targetRatio;
+      sw = srcWidth;
+      sh = srcWidth / targetRatio;
       sx = 0;
-      sy = (video.videoHeight - sh) / 2;
+      sy = (srcHeight - sh) / 2;
     }
-    ctx.drawImage(video, sx, sy, sw, sh, x, y, w, h);
+    ctx.drawImage(source, sx, sy, sw, sh, x, y, w, h);
   };
 
   const setupCamera = async (mode: 'user' | 'environment') => {
@@ -96,26 +99,37 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
     const ctx = canvasRef.current.getContext('2d')!;
 
     try {
-      // 1. Capture du Drink (Arrière)
-      drawCover(ctx, videoRef.current, 0, 0, 1080, 1350);
+      // 1. Sauvegarde temporaire du DRINK (Arrière) dans un canvas caché
+      const tempDrinkCanvas = document.createElement('canvas');
+      tempDrinkCanvas.width = videoRef.current.videoWidth;
+      tempDrinkCanvas.height = videoRef.current.videoHeight;
+      const tempDrinkCtx = tempDrinkCanvas.getContext('2d')!;
+      tempDrinkCtx.drawImage(videoRef.current, 0, 0);
 
-      // 2. Bascule auto vers Selfie
+      // 2. Bascule automatique vers le Selfie (Avant)
       setActiveSide('front');
       await setupCamera('user');
       
-      // Timer auto pour le selfie (1.5s)
+      // Timer pour laisser le temps de sourire (1.5s)
       await new Promise(r => setTimeout(r, 1500));
       
-      // --- CONFIGURATION SELFIE BAS À DROITE TRÈS ARRONDI ---
-      const sW = 340; // Légèrement plus grand pour l'esthétique
+      // 3. Dessin du SELFIE en GRAND FOND (Photo Principale)
+      ctx.save();
+      ctx.translate(1080, 0);
+      ctx.scale(-1, 1); // Effet miroir appliqué au selfie de fond pour un rendu naturel
+      drawCover(ctx, videoRef.current, 0, 0, 1080, 1350);
+      ctx.restore();
+
+      // --- CONFIGURATION DE LA VIGNETTE DU DRINK (BAS À DROITE) ---
+      const sW = 340; 
       const sH = 440; 
       const sX = 1080 - sW - 50; 
       const sY = 1350 - sH - 50; 
-      const radius = 80; // ARRONDISSEMENT AUGMENTÉ
+      const radius = 80; 
 
       ctx.save();
       
-      // Création du masque très arrondi
+      // Création du masque arrondi de la bulle
       ctx.beginPath();
       ctx.moveTo(sX + radius, sY);
       ctx.lineTo(sX + sW - radius, sY);
@@ -130,14 +144,13 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
       
       ctx.clip();
 
-      // Dessin du selfie
-      ctx.translate(sX + sW, sY);
-      ctx.scale(-1, 1);
-      drawCover(ctx, videoRef.current, 0, 0, sW, sH);
+      // Dessin du DRINK (sauvegardé à l'étape 1) dans la bulle
+      // Pas de scale(-1, 1) ici car l'appareil photo arrière ne doit pas être inversé
+      drawCover(ctx, tempDrinkCanvas, sX, sY, sW, sH);
       
       ctx.restore();
       
-      // Bordure blanche épaisse et bien arrondie
+      // Dessin de la bordure blanche épaisse autour de la bulle
       ctx.beginPath();
       ctx.lineWidth = 10;
       ctx.strokeStyle = "white";
@@ -170,9 +183,9 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
       const fileName = `${userProfile.id}-${Date.now()}.jpg`;
 
       await supabase.storage.from('drinks').upload(fileName, blob, {
-  cacheControl: '31536000', // Durée en secondes (1 an)
-  upsert: false
-});
+        cacheControl: '31536000',
+        upsert: false
+      });
       await supabase.from('drinks').insert([{
         user_id: userProfile.id,
         drink_type: `${selected.label} ${selected.emoji}`,
@@ -224,7 +237,6 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
         </div>
       )}
 
-      {/* Reste de la UI (Drink options & Main button) */}
       <div className="flex flex-wrap justify-center gap-2 mb-6">
         {DRINK_OPTIONS.map((option) => (
           <button
