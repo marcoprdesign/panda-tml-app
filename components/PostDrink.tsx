@@ -110,8 +110,8 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
       setActiveSide('front');
       await setupCamera('user');
       
-      // Timer pour laisser le temps de sourire (1.5s)
-      await new Promise(r => setTimeout(r, 1500));
+      // Timer pour laisser le temps de sourire (2.5s)
+      await new Promise(r => setTimeout(r, 2500));
       
       // 3. Dessin du SELFIE en GRAND FOND (Photo Principale)
       ctx.save();
@@ -267,7 +267,7 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
       {status === 'uploading' && (
         <div className="fixed inset-0 z-[110] bg-[#313449]/95 backdrop-blur-sm flex flex-col items-center justify-center text-white">
             <div className="animate-spin rounded-full h-12 w-12 border-4 border-white/20 border-t-white mb-4" />
-            <p className="text-[10px] font-black uppercase tracking-widest">Archiving...</p>
+            <p className="text-[10px] font-black uppercase tracking-widest">Uploading...</p>
         </div>
       )}
     </div>

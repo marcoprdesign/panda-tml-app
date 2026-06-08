@@ -2,30 +2,42 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/supabase';
 import { Search01Icon, ArrowDown01Icon } from "hugeicons-react";
+import ReactMarkdown from 'react-markdown';
+
+const CATEGORIES_ORDER = [
+  "BEFORE THE FESTIVAL",
+  "BRUSSELS",
+  "TRANSPORT",
+  "FRIENDSHIP GARDEN",
+  "BBQ",
+  "FOOD OPTIONS",
+  "PANDA MADNESS",
+  "GENERAL"
+];
 
 interface FAQItem {
   id: string | number;
   q: string;
   a: string;
+  category: string;
+  image_url?: string;
 }
 
 export default function FAQ({ onBack }: { onBack: () => void }) {
   const [questions, setQuestions] = useState<FAQItem[]>([]);
   const [search, setSearch] = useState("");
-  const [openIndex, setOpenIndex] = useState<number | null>(null);
+  const [openId, setOpenId] = useState<string | number | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Récupération des données depuis la table Supabase
   const fetchFAQ = async () => {
     setLoading(true);
     try {
       const { data, error } = await supabase
         .from('faq')
-        .select('id, q, a')
-        // Tu peux ajouter un .order('q', { ascending: true }) si tu veux trier par ordre alphabétique
+        .select('id, q, a, category, image_url');
         
       if (error) throw error;
-      if (data) setQuestions(data);
+      if (data) setQuestions(data as FAQItem[]);
     } catch (err) {
       console.error("Error fetching FAQ:", err);
     } finally {
@@ -37,10 +49,31 @@ export default function FAQ({ onBack }: { onBack: () => void }) {
     fetchFAQ();
   }, []);
 
-  // Filtrage avec une sécurité au cas où 'q' est indéfini
   const filteredFaq = questions.filter(item => 
-    item.q?.toLowerCase().includes(search.toLowerCase())
+    item.q?.toLowerCase().includes(search.toLowerCase()) ||
+    item.a?.toLowerCase().includes(search.toLowerCase())
   );
+
+  const groupByCategories = () => {
+    const groups: { [key: string]: FAQItem[] } = {};
+    
+    CATEGORIES_ORDER.forEach(cat => {
+      groups[cat] = [];
+    });
+
+    filteredFaq.forEach(item => {
+      const cat = item.category?.toUpperCase() || "GENERAL";
+      if (!groups[cat]) {
+        groups[cat] = [];
+      }
+      groups[cat].push(item);
+    });
+
+    return groups;
+  };
+
+  const faqGroups = groupByCategories();
+  const isSearching = search.trim() !== "";
 
   return (
     <div className="animate-in slide-in-from-right-10 duration-500">
@@ -64,42 +97,104 @@ export default function FAQ({ onBack }: { onBack: () => void }) {
       </div>
 
       {/* LISTE DES QUESTIONS */}
-      <div className="space-y-4">
+      <div className="space-y-6">
         {loading ? (
           <div className="flex justify-center py-10">
             <div className="w-5 h-5 border-2 border-[#d3d6e4] border-t-[#313449] rounded-full animate-spin" />
           </div>
         ) : filteredFaq.length > 0 ? (
-          filteredFaq.map((item, index) => (
-            <div key={item.id || index} className="bg-white rounded-[1.8rem] border border-[#d3d6e4]/50 overflow-hidden transition-all">
-              <button 
-                onClick={() => setOpenIndex(openIndex === index ? null : index)}
-                className="w-full p-5 flex justify-between items-center text-left"
-              >
-                <span className="text-[11px] font-black uppercase tracking-wide text-[#313449] leading-tight pr-4">
-                  {item.q}
-                </span>
-                <ArrowDown01Icon 
-                  size={16} 
-                  className={`transition-transform duration-300 ${openIndex === index ? 'rotate-180' : ''}`} 
-                />
-              </button>
-              
-              {openIndex === index && (
-                <div className="px-5 pb-5 animate-in fade-in zoom-in-95 duration-300">
-                  <p className="text-[12px] text-[#58618a] leading-relaxed font-medium">
-                    {item.a}
-                  </p>
-                </div>
-              )}
+          isSearching ? (
+            <div className="space-y-4">
+              {filteredFaq.map((item) => (
+                <FAQRow key={item.id} item={item} openId={openId} setOpenId={setOpenId} />
+              ))}
             </div>
-          ))
+          ) : (
+            Object.keys(faqGroups).map((category) => {
+              if (faqGroups[category].length === 0) return null;
+              return (
+                <div key={category} className="space-y-3">
+                  <h3 className="text-[10px] font-black tracking-[0.2em] text-[#8089b0] uppercase pl-2">
+                    {category}
+                  </h3>
+                  <div className="space-y-4">
+                    {faqGroups[category].map((item) => (
+                      <FAQRow key={item.id} item={item} openId={openId} setOpenId={setOpenId} />
+                    ))}
+                  </div>
+                </div>
+              );
+            })
+          )
         ) : (
           <div className="py-10 text-center uppercase text-[10px] font-black text-[#8089b0] tracking-widest">
             No dumb questions found.
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function FAQRow({ item, openId, setOpenId }: { item: FAQItem, openId: string | number | null, setOpenId: (id: string | number | null) => void }) {
+  const isOpen = openId === item.id;
+
+  return (
+    <div className="bg-white rounded-[1.8rem] border border-[#d3d6e4]/50 overflow-hidden transition-all shadow-sm">
+      <button 
+        onClick={() => setOpenId(isOpen ? null : item.id)}
+        className="w-full p-5 flex justify-between items-center text-left"
+      >
+        <span className="text-[11px] font-black uppercase tracking-wide text-[#313449] leading-tight pr-4">
+          {item.q}
+        </span>
+        <ArrowDown01Icon 
+          size={16} 
+          className={`transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} 
+        />
+      </button>
+      
+      {isOpen && (
+        <div className="px-5 pb-5 space-y-4 animate-in fade-in zoom-in-95 duration-300">
+          
+          {/* RENDU DE LA REPONSE EN MARKDOWN (Gère paragraphes, liens, sauts de ligne) */}
+          <div className="text-[12px] text-[#58618a] leading-relaxed font-medium faq-markdown-content">
+            <ReactMarkdown
+              components={{
+                // Style personnalisé pour les paragraphes (crée de vrais blocs espacés)
+                p: ({ children }) => <p className="mb-3 last:mb-0 whitespace-pre-line">{children}</p>,
+                // Style personnalisé pour les liens hypertexte
+                a: ({ href, children }) => (
+                  <a 
+                    href={href} 
+                    target="_blank" 
+                    rel="noopener noreferrer" 
+                    className="text-[#313449] font-black underline decoration-[#8089b0] hover:text-[#58618a] transition-colors"
+                  >
+                    {children}
+                  </a>
+                ),
+                // Style pour les listes à puces au cas où
+                ul: ({ children }) => <ul className="list-disc pl-4 space-y-1 mb-3">{children}</ul>,
+                li: ({ children }) => <li>{children}</li>
+              }}
+            >
+              {item.a}
+            </ReactMarkdown>
+          </div>
+
+          {item.image_url && (
+            <div className="w-full overflow-hidden rounded-2xl border border-[#d3d6e4]/30 bg-neutral-50 mt-2">
+              <img 
+                src={item.image_url} 
+                alt={item.q} 
+                className="w-full h-auto max-h-[250px] object-cover"
+                loading="lazy"
+              />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
