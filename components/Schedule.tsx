@@ -48,8 +48,6 @@ export default function Schedule() {
           setStages(sortedStages);
         }
 
-        
-
         // Récupération de TOUS les favoris du groupe
         const { data: allFavData } = await supabase
           .from('lineup_favorites')
@@ -59,17 +57,16 @@ export default function Schedule() {
           setAllGroupFavorites(allFavData);
         }
 
-// Récupération des profils en parallèle de manière isolée
-const { data: profilesData, error: profilesError } = await supabase
-  .from('profiles')
-  .select('id, username');
+        // Récupération des profils en parallèle de manière isolée
+        const { data: profilesData, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, username');
+        
+        console.log("DEBUG PROFILES:", { data: profilesData, error: profilesError });
 
-// 🔥 Le log pour voir exactement ce que Supabase renvoie ou bloque :
-console.log("DEBUG PROFILES:", { data: profilesData, error: profilesError });
-
-if (profilesData) {
-  setProfilesList(profilesData);
-}
+        if (profilesData) {
+          setProfilesList(profilesData);
+        }
 
         // Récupération de la session utilisateur
         const { data: { session } } = await supabase.auth.getSession();
@@ -215,10 +212,15 @@ if (profilesData) {
                   const isFav = favorites.includes(artist.id);
                   const isExpanded = expandedArtistId === artist.id;
 
-                  // Liste des favoris des autres membres de la squad pour cet artiste
+                  // Liste des favoris des AUTRES membres de la squad pour cet artiste
                   const interestedFavs = allGroupFavorites.filter(
                     fav => fav.lineup_id === artist.id && fav.user_id !== currentUserId
                   );
+
+                  // 🔥 NOUVEAU : Calcul du nombre total de pandas intéressés (Toi inclus si tu l'as mis en favori)
+                  const totalPandasCount = allGroupFavorites.filter(
+                    fav => fav.lineup_id === artist.id
+                  ).length;
 
                   return (
                     <div key={artist.id} className="space-y-2">
@@ -227,10 +229,20 @@ if (profilesData) {
                         className={`p-5 rounded-[1.8rem] border flex justify-between items-center transition-all duration-300 cursor-pointer active:scale-[0.98]
                           ${isExpanded ? 'bg-[#ebecf3] border-[#d3d6e4]' : 'bg-white border-[#d3d6e4] shadow-sm'}`}
                       >
-                        <div className="flex flex-col gap-1">
+                        <div className="flex flex-col gap-1.5">
                           <div className="text-[11px] font-black uppercase tracking-wider leading-none text-[#313449]">{artist.artist}</div>
-                          <div className="text-[8px] font-bold uppercase tracking-widest text-[#58618a]">
-                            {searchTerm ? `${artist.day.slice(0,3)} • ` : ''} {artist.start_time} — {artist.end_time}
+                          
+                          <div className="flex flex-col gap-0.5">
+                            <div className="text-[8px] font-bold uppercase tracking-widest text-[#58618a]">
+                              {searchTerm ? `${artist.day.slice(0,3)} • ` : ''} {artist.start_time} — {artist.end_time}
+                            </div>
+                            
+                            {/* 🔥 NOUVEAU : Indicateur rapide sous l'heure */}
+                            {totalPandasCount > 0 && (
+                              <div className="text-[8px] style={{ color: '#FF7A00' }} font-black text-[#FF7A00]/60 uppercase tracking-wider flex items-center gap-1 mt-0.5">
+                                🐼 {totalPandasCount} {totalPandasCount > 1 ? 'pandas' : 'panda'} interested
+                              </div>
+                            )}
                           </div>
                         </div>
 
@@ -251,7 +263,6 @@ if (profilesData) {
                           {interestedFavs.length > 0 ? (
                             <div className="flex flex-wrap gap-1.5">
                               {interestedFavs.map((fav, i) => {
-                                // Recherche de correspondance d'ID dans la liste des profils chargés
                                 const match = profilesList.find(p => p.id === fav.user_id);
                                 const displayName = match ? match.username : "Friend";
 
@@ -263,7 +274,7 @@ if (profilesData) {
                               })}
                             </div>
                           ) : (
-                            <p className="text-[9px] italic font-medium text-[#8089b0] pl-1">No pandas have added this artist yet.</p>
+                            <p className="text-[9px] italic font-medium text-[#8089b0] pl-1">No other pandas have added this artist yet.</p>
                           )}
                         </div>
                       )}
