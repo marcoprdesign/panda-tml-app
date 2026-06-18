@@ -18,22 +18,13 @@ export default function Schedule() {
   const [stages, setStages] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   
-  // NOUVEAU : On gère l'ID de l'artiste sélectionné pour afficher ses détails
   const [expandedArtistId, setExpandedArtistId] = useState<number | null>(null);
-  
-  // NOUVEAU : Stocke TOUS les favoris du groupe avec les infos de tes potes
   const [allGroupFavorites, setAllGroupFavorites] = useState<any[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchInitialData();
-  }, []);
-
-  const fetchInitialData = async () => {
+  // 1. Chargement du Lineup (Indépendant de l'utilisateur)
+  const fetchLineup = async () => {
     try {
-      setLoading(true);
-      
-      // 1. Récupération du Lineup
       const { data: lineupData } = await supabase
         .from('lineup')
         .select('*')
@@ -45,79 +36,91 @@ export default function Schedule() {
         const sortedStages = uniqueStages.sort((a, b) => (STAGE_PRIORITY[a] || 999) - (STAGE_PRIORITY[b] || 999));
         setStages(sortedStages);
       }
+    } catch (e) {
+      console.error("Error loading lineup:", e);
+    }
+  };
 
-      // 2. Récupération de la session de l'user actuel
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        setCurrentUserId(session.user.id);
-      }
-
-      // 3. Récupération de TOUS les favoris du groupe avec le nom de l'ami
-      // J'ajoute l'id du lineup et le nom du pote (jointure avec ta table des profils)
+  // 2. Chargement de TOUS les favoris du groupe (Dépend de l'authentification)
+  const fetchGroupFavorites = async () => {
+    try {
       const { data: favData } = await supabase
         .from('lineup_favorites')
         .select(`
           lineup_id,
           user_id,
           profiles ( display_name )
-        `); // ⚠️ Ajuste 'profiles(display_name)' selon le nom réel de ta table user
+        `);
         
       if (favData) {
         setAllGroupFavorites(favData);
       }
-
-    } catch (e) { 
-      console.error(e); 
-    } finally { 
-      setLoading(false); 
+    } catch (e) {
+      console.error("Error loading favorites:", e);
     }
   };
 
-  // Liste des IDs favoris uniquement pour l'utilisateur actuel (pour l'affichage des étoiles et l'onglet "My schedule")
+  // 3. Écouteur de session dynamique + Premier chargement
+  useEffect(() => {
+    fetchLineup();
+
+    // On s'abonne aux changements d'état de l'authentification Supabase
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session) {
+        setCurrentUserId(session.user.id);
+        fetchGroupFavorites(); // On charge les favoris dès que la session est confirmée
+      } else {
+        setCurrentUserId(null);
+        setAllGroupFavorites([]);
+      }
+      setLoading(false); // Le chargement s'arrête une fois fixés sur l'auth
+    });
+
+    // Nettoyage de l'abonnement quand le composant est détruit
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
   const myFavoritesIds = allGroupFavorites
     .filter(fav => fav.user_id === currentUserId)
     .map(fav => fav.lineup_id);
 
-const toggleFavorite = async (e: React.MouseEvent, id: number) => {
-  e.stopPropagation(); // Empêche d'ouvrir le volet de l'artiste
-  
-  if (!currentUserId) return;
-  const isAlreadyFav = myFavoritesIds.includes(id);
-
-  // 1. MISE À JOUR LOCALE ET INSTANTANÉE (UI Optimiste)
-  if (isAlreadyFav) {
-    // On retire notre favori de la liste locale
-    setAllGroupFavorites(prev => prev.filter(f => !(f.user_id === currentUserId && f.lineup_id === id)));
-  } else {
-    // On ajoute notre favori localement sans toucher au reste du groupe
-    setAllGroupFavorites(prev => [...prev, { lineup_id: id, user_id: currentUserId, profiles: { display_name: "You" } }]);
-  }
-
-  // 2. ENVOI À SUPABASE EN ARRIÈRE-PLAN (Sans fetchInitialData qui fait sauter le scroll)
-  try {
-    if (isAlreadyFav) {
-      await supabase.from('lineup_favorites').delete().match({ user_id: currentUserId, lineup_id: id });
-    } else {
-      await supabase.from('lineup_favorites').insert({ user_id: currentUserId, lineup_id: id });
-    }
+  const toggleFavorite = async (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
+    if (!currentUserId) return;
     
-    // Au lieu de fetchInitialData(), on rafraîchit UNIQUEMENT la table des favoris en tâche de fond
-    const { data: freshFavs } = await supabase
-      .from('lineup_favorites')
-      .select(`
-        lineup_id,
-        user_id,
-        profiles ( display_name )
-      `);
-      
-    if (freshFavs) {
-      setAllGroupFavorites(freshFavs);
+    const isAlreadyFav = myFavoritesIds.includes(id);
+
+    if (isAlreadyFav) {
+      setAllGroupFavorites(prev => prev.filter(f => !(f.user_id === currentUserId && f.lineup_id === id)));
+    } else {
+      setAllGroupFavorites(prev => [...prev, { lineup_id: id, user_id: currentUserId, profiles: { display_name: "You" } }]);
     }
-  } catch (e) { 
-    console.error("Erreur favoris:", e);
-    // Optionnel : Tu pourrais restaurer l'état précédent ici en cas de vrai crash réseau
-  }
-};
+
+    try {
+      if (isAlreadyFav) {
+        await supabase.from('lineup_favorites').delete().match({ user_id: currentUserId, lineup_id: id });
+      } else {
+        await supabase.from('lineup_favorites').insert({ user_id: currentUserId, lineup_id: id });
+      }
+      
+      // Rafraîchissement discret en arrière-plan
+      const { data: freshFavs } = await supabase
+        .from('lineup_favorites')
+        .select(`
+          lineup_id,
+          user_id,
+          profiles ( display_name )
+        `);
+        
+      if (freshFavs) {
+        setAllGroupFavorites(freshFavs);
+      }
+    } catch (e) { 
+      console.error(e); 
+    }
+  };
 
   const filteredLineup = lineup.filter(item => {
     const matchesSearch = item.artist?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -202,7 +205,6 @@ const toggleFavorite = async (e: React.MouseEvent, id: number) => {
                   const isFav = myFavoritesIds.includes(artist.id);
                   const isExpanded = expandedArtistId === artist.id;
 
-                  // On filtre les potes qui ont ajouté CET artiste précis en favori
                   const whoFavsThisArtist = allGroupFavorites
                     .filter(fav => fav.lineup_id === artist.id && fav.user_id !== currentUserId)
                     .map(fav => fav.profiles?.display_name || "Un pote");
@@ -220,7 +222,6 @@ const toggleFavorite = async (e: React.MouseEvent, id: number) => {
                           </div>
                         </div>
 
-                        {/* BOUTON ÉTOILE : Seul le clic ici active/désactive le favori */}
                         <button 
                           onClick={(e) => toggleFavorite(e, artist.id)}
                           className={`w-9 h-9 rounded-full flex items-center justify-center text-xs transition-all border outline-none
@@ -230,7 +231,6 @@ const toggleFavorite = async (e: React.MouseEvent, id: number) => {
                         </button>
                       </div>
 
-                      {/* NOUVEAU : Zone extensible qui affiche la liste des potes intéressés */}
                       {isExpanded && (
                         <div className="mx-4 p-4 bg-[#ebecf3]/60 border border-[#d3d6e4]/60 rounded-2xl animate-in slide-in-from-top-2 duration-300">
                           <h4 className="text-[8px] font-black tracking-widest uppercase text-[#8089b0] mb-2">🧑‍🤝‍🧑 On stage with:</h4>
