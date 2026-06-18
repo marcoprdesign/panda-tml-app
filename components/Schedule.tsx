@@ -16,8 +16,14 @@ export default function Schedule() {
   const [searchTerm, setSearchTerm] = useState("");
   const [lineup, setLineup] = useState<any[]>([]);
   const [stages, setStages] = useState<string[]>([]);
-  const [favorites, setFavorites] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // NOUVEAU : On gère l'ID de l'artiste sélectionné pour afficher ses détails
+  const [expandedArtistId, setExpandedArtistId] = useState<number | null>(null);
+  
+  // NOUVEAU : Stocke TOUS les favoris du groupe avec les infos de tes potes
+  const [allGroupFavorites, setAllGroupFavorites] = useState<any[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchInitialData();
@@ -26,6 +32,8 @@ export default function Schedule() {
   const fetchInitialData = async () => {
     try {
       setLoading(true);
+      
+      // 1. Récupération du Lineup
       const { data: lineupData } = await supabase
         .from('lineup')
         .select('*')
@@ -38,48 +46,80 @@ export default function Schedule() {
         setStages(sortedStages);
       }
 
+      // 2. Récupération de la session de l'user actuel
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        const { data: favData } = await supabase.from('lineup_favorites').select('lineup_id').eq('user_id', session.user.id);
-        if (favData) setFavorites(favData.map(f => f.lineup_id));
+        setCurrentUserId(session.user.id);
       }
-    } catch (e) { console.error(e); } finally { setLoading(false); }
+
+      // 3. Récupération de TOUS les favoris du groupe avec le nom de l'ami
+      // J'ajoute l'id du lineup et le nom du pote (jointure avec ta table des profils)
+      const { data: favData } = await supabase
+        .from('lineup_favorites')
+        .select(`
+          lineup_id,
+          user_id,
+          profiles ( display_name )
+        `); // ⚠️ Ajuste 'profiles(display_name)' selon le nom réel de ta table user
+        
+      if (favData) {
+        setAllGroupFavorites(favData);
+      }
+
+    } catch (e) { 
+      console.error(e); 
+    } finally { 
+      setLoading(false); 
+    }
   };
 
-  const toggleFavorite = async (id: number) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) return;
-    const isAlreadyFav = favorites.includes(id);
-    setFavorites(prev => isAlreadyFav ? prev.filter(f => f !== id) : [...prev, id]);
+  // Liste des IDs favoris uniquement pour l'utilisateur actuel (pour l'affichage des étoiles et l'onglet "My schedule")
+  const myFavoritesIds = allGroupFavorites
+    .filter(fav => fav.user_id === currentUserId)
+    .map(fav => fav.lineup_id);
+
+  const toggleFavorite = async (e: React.MouseEvent, id: number) => {
+    e.stopPropagation(); // 🔥 TRÈS IMPORTANT : Empêche d'ouvrir le volet de l'artiste quand on clique sur l'étoile !
+    
+    if (!currentUserId) return;
+    const isAlreadyFav = myFavoritesIds.includes(id);
+
+    // Optimisation UI immédiate
+    if (isAlreadyFav) {
+      setAllGroupFavorites(prev => prev.filter(f => !(f.user_id === currentUserId && f.lineup_id === id)));
+    } else {
+      // On simule l'ajout dans le state local en attendant la réponse de Supabase
+      setAllGroupFavorites(prev => [...prev, { lineup_id: id, user_id: currentUserId, profiles: { display_name: "You" } }]);
+    }
+
     try {
       if (isAlreadyFav) {
-        await supabase.from('lineup_favorites').delete().match({ user_id: session.user.id, lineup_id: id });
+        await supabase.from('lineup_favorites').delete().match({ user_id: currentUserId, lineup_id: id });
       } else {
-        await supabase.from('lineup_favorites').insert({ user_id: session.user.id, lineup_id: id });
+        await supabase.from('lineup_favorites').insert({ user_id: currentUserId, lineup_id: id });
       }
-    } catch (e) { console.error(e); }
+      // Re-fetch discret pour s'assurer que les noms récupérés via la jointure soient exacts
+      fetchInitialData();
+    } catch (e) { 
+      console.error(e); 
+    }
   };
 
   const filteredLineup = lineup.filter(item => {
     const matchesSearch = item.artist?.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           item.stage?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDay = searchTerm.length > 0 ? true : (item.day?.toLowerCase() === selectedDay.toLowerCase());
-    const isFav = activeSubTab === 'my' ? favorites.includes(item.id) : true;
+    const isFav = activeSubTab === 'my' ? myFavoritesIds.includes(item.id) : true;
     return matchesSearch && matchesDay && isFav;
   });
 
-  // Fonction utilitaire pour trier chronologiquement en comptant minuit/01h comme la fin de soirée
   const getSortedArtistsForStage = (artists: any[]) => {
     return [...artists].sort((a, b) => {
       const getWeight = (timeStr: string) => {
         if (!timeStr) return 0;
         const [hours, minutes] = timeStr.split(':').map(Number);
         let totalHours = hours + minutes / 60;
-        
-        // Si l'artiste joue entre 00:00 et 05:59, on le repousse artificiellement de 24 heures
-        if (hours >= 0 && hours < 6) {
-          totalHours += 24;
-        }
+        if (hours >= 0 && hours < 6) totalHours += 24;
         return totalHours;
       };
       return getWeight(a.start_time) - getWeight(b.start_time);
@@ -113,7 +153,7 @@ export default function Schedule() {
           Timetable
         </button>
         <button onClick={() => setActiveSubTab('my')} className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 ${activeSubTab === 'my' ? 'bg-[#313449] text-[#f6f6f9] shadow-md' : 'text-[#8089b0]'}`}>
-          My favorites ({favorites.length})
+          My favorites ({myFavoritesIds.length})
         </button>
       </div>
 
@@ -134,7 +174,6 @@ export default function Schedule() {
           const unsortedStageArtists = filteredLineup.filter(item => item.stage?.toUpperCase() === stage);
           if (unsortedStageArtists.length === 0) return null;
 
-          // Application du tri temporel intelligent avant d'afficher
           const stageArtists = getSortedArtistsForStage(unsortedStageArtists);
 
           return (
@@ -146,23 +185,54 @@ export default function Schedule() {
 
               <div className="space-y-3">
                 {stageArtists.map(artist => {
-                  const isFav = favorites.includes(artist.id);
+                  const isFav = myFavoritesIds.includes(artist.id);
+                  const isExpanded = expandedArtistId === artist.id;
+
+                  // On filtre les potes qui ont ajouté CET artiste précis en favori
+                  const whoFavsThisArtist = allGroupFavorites
+                    .filter(fav => fav.lineup_id === artist.id && fav.user_id !== currentUserId)
+                    .map(fav => fav.profiles?.display_name || "Un pote");
+
                   return (
-                    <div 
-                      key={artist.id} 
-                      onClick={() => toggleFavorite(artist.id)}
-                      className={`p-5 rounded-[1.8rem] border transition-all duration-300 flex justify-between items-center active:scale-[0.97]
-                        ${isFav ? 'bg-[#202231] border-[#202231] shadow-lg shadow-[#202231]/20' : 'bg-white border-[#d3d6e4] shadow-sm'}`}
-                    >
-                      <div className="flex flex-col gap-1">
-                        <div className={`text-[11px] font-black uppercase tracking-wider leading-none ${isFav ? 'text-[#f6f6f9]' : 'text-[#313449]'}`}>{artist.artist}</div>
-                        <div className={`text-[8px] font-bold uppercase tracking-widest ${isFav ? 'text-[#8089b0]' : 'text-[#58618a]'}`}>
-                          {searchTerm ? `${artist.day.slice(0,3)} • ` : ''} {artist.start_time} — {artist.end_time}
+                    <div key={artist.id} className="space-y-2">
+                      <div 
+                        onClick={() => setExpandedArtistId(isExpanded ? null : artist.id)}
+                        className={`p-5 rounded-[1.8rem] border transition-all duration-300 flex justify-between items-center cursor-pointer active:scale-[0.99] bg-white border-[#d3d6e4] shadow-sm`}
+                      >
+                        <div className="flex flex-col gap-1">
+                          <div className="text-[11px] font-black uppercase tracking-wider leading-none text-[#313449]">{artist.artist}</div>
+                          <div className="text-[8px] font-bold uppercase tracking-widest text-[#58618a]">
+                            {searchTerm ? `${artist.day.slice(0,3)} • ` : ''} {artist.start_time} — {artist.end_time}
+                          </div>
                         </div>
+
+                        {/* BOUTON ÉTOILE : Seul le clic ici active/désactive le favori */}
+                        <button 
+                          onClick={(e) => toggleFavorite(e, artist.id)}
+                          className={`w-9 h-9 rounded-full flex items-center justify-center text-xs transition-all border outline-none
+                            ${isFav ? 'bg-[#202231] text-[#f6f6f9] border-[#202231]' : 'bg-[#f6f6f9] text-[#adb2cc] border-[#d3d6e4]'}`}
+                        >
+                          {isFav ? '✦' : '✧'}
+                        </button>
                       </div>
-                      <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs transition-all border ${isFav ? 'bg-[#f6f6f9] text-[#202231] border-[#f6f6f9]' : 'bg-[#f6f6f9] text-[#adb2cc] border-[#d3d6e4]'}`}>
-                        {isFav ? '✦' : '✧'}
-                      </div>
+
+                      {/* NOUVEAU : Zone extensible qui affiche la liste des potes intéressés */}
+                      {isExpanded && (
+                        <div className="mx-4 p-4 bg-[#ebecf3]/60 border border-[#d3d6e4]/60 rounded-2xl animate-in slide-in-from-top-2 duration-300">
+                          <h4 className="text-[8px] font-black tracking-widest uppercase text-[#8089b0] mb-2">🧑‍🤝‍🧑 On stage with:</h4>
+                          {whoFavsThisArtist.length > 0 ? (
+                            <div className="flex flex-wrap gap-1.5">
+                              {whoFavsThisArtist.map((name, i) => (
+                                <span key={i} className="px-2.5 py-1 bg-white border border-[#d3d6e4] rounded-full text-[9px] font-black text-[#313449] uppercase tracking-wide shadow-sm">
+                                  🐼 {name}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-[9px] italic font-medium text-[#8089b0]">No one else in the squad added this artist yet.</p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
