@@ -20,11 +20,14 @@ export default function Schedule() {
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  // NOUNVEAU : Stocke TOUS les favoris du groupe (lineup_id et user_id uniquement)
+  // Stocke TOUS les favoris du groupe (lineup_id et user_id uniquement)
   const [allGroupFavorites, setAllGroupFavorites] = useState<any[]>([]);
   
-  // NOUVEAU : Gère l'ID de l'artiste actuellement déplié
+  // Gère l'ID de l'artiste actuellement déplié
   const [expandedArtistId, setExpandedArtistId] = useState<number | null>(null);
+
+  // Stocke la liste des profils pour lier les usernames de manière isolée
+  const [profilesList, setProfilesList] = useState<any[]>([]);
 
   // 1. Initialisation au montage
   useEffect(() => {
@@ -45,7 +48,9 @@ export default function Schedule() {
           setStages(sortedStages);
         }
 
-        // NOUVEAU : Récupération de TOUS les favoris du groupe (simple et robuste)
+        
+
+        // Récupération de TOUS les favoris du groupe
         const { data: allFavData } = await supabase
           .from('lineup_favorites')
           .select('lineup_id, user_id');
@@ -54,11 +59,23 @@ export default function Schedule() {
           setAllGroupFavorites(allFavData);
         }
 
+// Récupération des profils en parallèle de manière isolée
+const { data: profilesData, error: profilesError } = await supabase
+  .from('profiles')
+  .select('id, username');
+
+// 🔥 Le log pour voir exactement ce que Supabase renvoie ou bloque :
+console.log("DEBUG PROFILES:", { data: profilesData, error: profilesError });
+
+if (profilesData) {
+  setProfilesList(profilesData);
+}
+
         // Récupération de la session utilisateur
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           setCurrentUserId(session.user.id);
-          // Filtre pour obtenir tes favoris personnels
+          // Filtre pour obtenir tes favoris personnels au refresh
           if (allFavData) {
             const myFavs = allFavData
               .filter(fav => fav.user_id === session.user.id)
@@ -76,17 +93,17 @@ export default function Schedule() {
     initApp();
   }, []);
 
-  // 2. Action d'ajout/suppression en favoris (Isolée sur l'étoile)
+  // 2. Action d'ajout/suppression en favoris
   const toggleFavorite = async (e: React.MouseEvent, id: number) => {
-    e.stopPropagation(); // BLOQUE L'OUVERTURE DE LA SECTION ARTISTE
+    e.stopPropagation(); // Bloque l'ouverture de la section artiste lors du clic sur l'étoile
     if (!currentUserId) return;
 
     const isAlreadyFav = favorites.includes(id);
 
-    // Mise à jour visuelle instantanée
+    // UI optimiste : Mise à jour visuelle instantanée
     setFavorites(prev => isAlreadyFav ? prev.filter(f => f !== id) : [...prev, id]);
 
-    // Mise à jour locale du state du groupe pour la section extensible
+    // Mise à jour locale immédiate du state du groupe
     if (isAlreadyFav) {
       setAllGroupFavorites(prev => prev.filter(f => !(f.user_id === currentUserId && f.lineup_id === id)));
     } else {
@@ -109,7 +126,6 @@ export default function Schedule() {
     }
   };
 
-  // NOUVEAU : Gère le clic sur la ligne de l'artiste pour déplier
   const handleArtistClick = (artistId: number) => {
     setExpandedArtistId(prevId => (prevId === artistId ? null : artistId));
   };
@@ -123,7 +139,7 @@ export default function Schedule() {
     return matchesSearch && matchesDay && isFav;
   });
 
-  // 4. Tri chronologique (fin de soirée à la fin)
+  // 4. Tri chronologique (gestion de la fin de nuit après minuit)
   const getSortedArtistsForStage = (artists: any[]) => {
     return [...artists].sort((a, b) => {
       const getWeight = (timeStr: string) => {
@@ -199,16 +215,14 @@ export default function Schedule() {
                   const isFav = favorites.includes(artist.id);
                   const isExpanded = expandedArtistId === artist.id;
 
-                  // NOUVEAU : Calcule le nombre de potes intéressés (excluant soi-même)
-                  const squadCount = allGroupFavorites.filter(
+                  // Liste des favoris des autres membres de la squad pour cet artiste
+                  const interestedFavs = allGroupFavorites.filter(
                     fav => fav.lineup_id === artist.id && fav.user_id !== currentUserId
-                  ).length;
+                  );
 
                   return (
-                    // NOUVEAU : Conteneur pour gérer l'espacement de la section extensible
                     <div key={artist.id} className="space-y-2">
                       <div 
-                        // MODIFIÉ : Devient cliquable pour déplier
                         onClick={() => handleArtistClick(artist.id)}
                         className={`p-5 rounded-[1.8rem] border flex justify-between items-center transition-all duration-300 cursor-pointer active:scale-[0.98]
                           ${isExpanded ? 'bg-[#ebecf3] border-[#d3d6e4]' : 'bg-white border-[#d3d6e4] shadow-sm'}`}
@@ -220,7 +234,7 @@ export default function Schedule() {
                           </div>
                         </div>
 
-                        {/* ÉTOILE (toggleFavorite bloque la propagation) */}
+                        {/* ÉTOILE */}
                         <button 
                           onClick={(e) => toggleFavorite(e, artist.id)}
                           className={`w-9 h-9 rounded-full flex items-center justify-center text-xs transition-all border outline-none
@@ -230,18 +244,23 @@ export default function Schedule() {
                         </button>
                       </div>
 
-                      {/* NOUVEAU : Section extensible sociale */}
+                      {/* Section extensible sociale */}
                       {isExpanded && (
                         <div className="mx-4 p-4 bg-[#ebecf3]/50 border border-[#d3d6e4]/60 rounded-2xl animate-in slide-in-from-top-2 duration-300">
                           <h4 className="text-[8px] font-black tracking-widest uppercase text-[#8089b0] mb-2.5">🧑‍🤝‍🧑 Squad Members Interested:</h4>
-                          {squadCount > 0 ? (
+                          {interestedFavs.length > 0 ? (
                             <div className="flex flex-wrap gap-1.5">
-                              {/* Génère un badge générique pour chaque pote */}
-                              {Array.from({ length: squadCount }).map((_, i) => (
-                                <span key={i} className="px-3 py-1 bg-white border border-[#d3d6e4] rounded-full text-[9px] font-black text-[#313449] uppercase tracking-wide shadow-sm flex items-center gap-1.5">
-                                  <span className="text-xs">🐼</span> Friend
-                                </span>
-                              ))}
+                              {interestedFavs.map((fav, i) => {
+                                // Recherche de correspondance d'ID dans la liste des profils chargés
+                                const match = profilesList.find(p => p.id === fav.user_id);
+                                const displayName = match ? match.username : "Friend";
+
+                                return (
+                                  <span key={i} className="px-3 py-1 bg-white border border-[#d3d6e4] rounded-full text-[9px] font-black text-[#313449] uppercase tracking-wide shadow-sm flex items-center gap-1.5">
+                                    <span className="text-xs">🐼</span> {displayName}
+                                  </span>
+                                );
+                              })}
                             </div>
                           ) : (
                             <p className="text-[9px] italic font-medium text-[#8089b0] pl-1">No pandas have added this artist yet.</p>
