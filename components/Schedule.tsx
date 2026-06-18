@@ -20,7 +20,13 @@ export default function Schedule() {
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  // 1. Initialisation unique au montage du composant
+  // NOUNVEAU : Stocke TOUS les favoris du groupe (lineup_id et user_id uniquement)
+  const [allGroupFavorites, setAllGroupFavorites] = useState<any[]>([]);
+  
+  // NOUVEAU : Gère l'ID de l'artiste actuellement déplié
+  const [expandedArtistId, setExpandedArtistId] = useState<number | null>(null);
+
+  // 1. Initialisation au montage
   useEffect(() => {
     const initApp = async () => {
       try {
@@ -39,19 +45,25 @@ export default function Schedule() {
           setStages(sortedStages);
         }
 
+        // NOUVEAU : Récupération de TOUS les favoris du groupe (simple et robuste)
+        const { data: allFavData } = await supabase
+          .from('lineup_favorites')
+          .select('lineup_id, user_id');
+        
+        if (allFavData) {
+          setAllGroupFavorites(allFavData);
+        }
+
         // Récupération de la session utilisateur
         const { data: { session } } = await supabase.auth.getSession();
         if (session) {
           setCurrentUserId(session.user.id);
-          
-          // Récupération des favoris personnels
-          const { data: favData } = await supabase
-            .from('lineup_favorites')
-            .select('lineup_id')
-            .eq('user_id', session.user.id);
-            
-          if (favData) {
-            setFavorites(favData.map(f => f.lineup_id));
+          // Filtre pour obtenir tes favoris personnels
+          if (allFavData) {
+            const myFavs = allFavData
+              .filter(fav => fav.user_id === session.user.id)
+              .map(fav => fav.lineup_id);
+            setFavorites(myFavs);
           }
         }
       } catch (e) {
@@ -64,15 +76,22 @@ export default function Schedule() {
     initApp();
   }, []);
 
-  // 2. Action d'ajout/suppression en favoris (Cliquable uniquement sur l'étoile)
+  // 2. Action d'ajout/suppression en favoris (Isolée sur l'étoile)
   const toggleFavorite = async (e: React.MouseEvent, id: number) => {
-    e.stopPropagation(); // Bloque l'ouverture de l'artiste
+    e.stopPropagation(); // BLOQUE L'OUVERTURE DE LA SECTION ARTISTE
     if (!currentUserId) return;
 
     const isAlreadyFav = favorites.includes(id);
 
-    // Mise à jour visuelle instantanée (UI optimiste)
+    // Mise à jour visuelle instantanée
     setFavorites(prev => isAlreadyFav ? prev.filter(f => f !== id) : [...prev, id]);
+
+    // Mise à jour locale du state du groupe pour la section extensible
+    if (isAlreadyFav) {
+      setAllGroupFavorites(prev => prev.filter(f => !(f.user_id === currentUserId && f.lineup_id === id)));
+    } else {
+      setAllGroupFavorites(prev => [...prev, { lineup_id: id, user_id: currentUserId }]);
+    }
 
     try {
       if (isAlreadyFav) {
@@ -90,6 +109,11 @@ export default function Schedule() {
     }
   };
 
+  // NOUVEAU : Gère le clic sur la ligne de l'artiste pour déplier
+  const handleArtistClick = (artistId: number) => {
+    setExpandedArtistId(prevId => (prevId === artistId ? null : artistId));
+  };
+
   // 3. Filtrage du Lineup
   const filteredLineup = lineup.filter(item => {
     const matchesSearch = item.artist?.toLowerCase().includes(searchTerm.toLowerCase()) || 
@@ -99,14 +123,14 @@ export default function Schedule() {
     return matchesSearch && matchesDay && isFav;
   });
 
-  // 4. Tri chronologique de fin de soirée (Minuit / 01h à la fin)
+  // 4. Tri chronologique (fin de soirée à la fin)
   const getSortedArtistsForStage = (artists: any[]) => {
     return [...artists].sort((a, b) => {
       const getWeight = (timeStr: string) => {
         if (!timeStr) return 0;
         const [hours, minutes] = timeStr.split(':').map(Number);
         let totalHours = hours + minutes / 60;
-        if (hours >= 0 && hours < 6) totalHours += 24; // Pousse la nuit à la fin
+        if (hours >= 0 && hours < 6) totalHours += 24; 
         return totalHours;
       };
       return getWeight(a.start_time) - getWeight(b.start_time);
@@ -173,27 +197,57 @@ export default function Schedule() {
               <div className="space-y-3">
                 {stageArtists.map(artist => {
                   const isFav = favorites.includes(artist.id);
+                  const isExpanded = expandedArtistId === artist.id;
+
+                  // NOUVEAU : Calcule le nombre de potes intéressés (excluant soi-même)
+                  const squadCount = allGroupFavorites.filter(
+                    fav => fav.lineup_id === artist.id && fav.user_id !== currentUserId
+                  ).length;
 
                   return (
-                    <div 
-                      key={artist.id} 
-                      className="p-5 rounded-[1.8rem] border flex justify-between items-center bg-white border-[#d3d6e4] shadow-sm"
-                    >
-                      <div className="flex flex-col gap-1">
-                        <div className="text-[11px] font-black uppercase tracking-wider leading-none text-[#313449]">{artist.artist}</div>
-                        <div className="text-[8px] font-bold uppercase tracking-widest text-[#58618a]">
-                          {searchTerm ? `${artist.day.slice(0,3)} • ` : ''} {artist.start_time} — {artist.end_time}
+                    // NOUVEAU : Conteneur pour gérer l'espacement de la section extensible
+                    <div key={artist.id} className="space-y-2">
+                      <div 
+                        // MODIFIÉ : Devient cliquable pour déplier
+                        onClick={() => handleArtistClick(artist.id)}
+                        className={`p-5 rounded-[1.8rem] border flex justify-between items-center transition-all duration-300 cursor-pointer active:scale-[0.98]
+                          ${isExpanded ? 'bg-[#ebecf3] border-[#d3d6e4]' : 'bg-white border-[#d3d6e4] shadow-sm'}`}
+                      >
+                        <div className="flex flex-col gap-1">
+                          <div className="text-[11px] font-black uppercase tracking-wider leading-none text-[#313449]">{artist.artist}</div>
+                          <div className="text-[8px] font-bold uppercase tracking-widest text-[#58618a]">
+                            {searchTerm ? `${artist.day.slice(0,3)} • ` : ''} {artist.start_time} — {artist.end_time}
+                          </div>
                         </div>
+
+                        {/* ÉTOILE (toggleFavorite bloque la propagation) */}
+                        <button 
+                          onClick={(e) => toggleFavorite(e, artist.id)}
+                          className={`w-9 h-9 rounded-full flex items-center justify-center text-xs transition-all border outline-none
+                            ${isFav ? 'bg-[#202231] text-[#f6f6f9] border-[#202231]' : 'bg-[#f6f6f9] text-[#adb2cc] border-[#d3d6e4]'}`}
+                        >
+                          {isFav ? '✦' : '✧'}
+                        </button>
                       </div>
 
-                      {/* ÉTOILE UNIQUE CLICABLE */}
-                      <button 
-                        onClick={(e) => toggleFavorite(e, artist.id)}
-                        className={`w-9 h-9 rounded-full flex items-center justify-center text-xs transition-all border outline-none
-                          ${isFav ? 'bg-[#202231] text-[#f6f6f9] border-[#202231]' : 'bg-[#f6f6f9] text-[#adb2cc] border-[#d3d6e4]'}`}
-                      >
-                        {isFav ? '✦' : '✧'}
-                      </button>
+                      {/* NOUVEAU : Section extensible sociale */}
+                      {isExpanded && (
+                        <div className="mx-4 p-4 bg-[#ebecf3]/50 border border-[#d3d6e4]/60 rounded-2xl animate-in slide-in-from-top-2 duration-300">
+                          <h4 className="text-[8px] font-black tracking-widest uppercase text-[#8089b0] mb-2.5">🧑‍🤝‍🧑 Squad Members Interested:</h4>
+                          {squadCount > 0 ? (
+                            <div className="flex flex-wrap gap-1.5">
+                              {/* Génère un badge générique pour chaque pote */}
+                              {Array.from({ length: squadCount }).map((_, i) => (
+                                <span key={i} className="px-3 py-1 bg-white border border-[#d3d6e4] rounded-full text-[9px] font-black text-[#313449] uppercase tracking-wide shadow-sm flex items-center gap-1.5">
+                                  <span className="text-xs">🐼</span> Friend
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-[9px] italic font-medium text-[#8089b0] pl-1">No pandas have added this artist yet.</p>
+                          )}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
