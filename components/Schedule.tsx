@@ -78,32 +78,46 @@ export default function Schedule() {
     .filter(fav => fav.user_id === currentUserId)
     .map(fav => fav.lineup_id);
 
-  const toggleFavorite = async (e: React.MouseEvent, id: number) => {
-    e.stopPropagation(); // 🔥 TRÈS IMPORTANT : Empêche d'ouvrir le volet de l'artiste quand on clique sur l'étoile !
-    
-    if (!currentUserId) return;
-    const isAlreadyFav = myFavoritesIds.includes(id);
+const toggleFavorite = async (e: React.MouseEvent, id: number) => {
+  e.stopPropagation(); // Empêche d'ouvrir le volet de l'artiste
+  
+  if (!currentUserId) return;
+  const isAlreadyFav = myFavoritesIds.includes(id);
 
-    // Optimisation UI immédiate
+  // 1. MISE À JOUR LOCALE ET INSTANTANÉE (UI Optimiste)
+  if (isAlreadyFav) {
+    // On retire notre favori de la liste locale
+    setAllGroupFavorites(prev => prev.filter(f => !(f.user_id === currentUserId && f.lineup_id === id)));
+  } else {
+    // On ajoute notre favori localement sans toucher au reste du groupe
+    setAllGroupFavorites(prev => [...prev, { lineup_id: id, user_id: currentUserId, profiles: { display_name: "You" } }]);
+  }
+
+  // 2. ENVOI À SUPABASE EN ARRIÈRE-PLAN (Sans fetchInitialData qui fait sauter le scroll)
+  try {
     if (isAlreadyFav) {
-      setAllGroupFavorites(prev => prev.filter(f => !(f.user_id === currentUserId && f.lineup_id === id)));
+      await supabase.from('lineup_favorites').delete().match({ user_id: currentUserId, lineup_id: id });
     } else {
-      // On simule l'ajout dans le state local en attendant la réponse de Supabase
-      setAllGroupFavorites(prev => [...prev, { lineup_id: id, user_id: currentUserId, profiles: { display_name: "You" } }]);
+      await supabase.from('lineup_favorites').insert({ user_id: currentUserId, lineup_id: id });
     }
-
-    try {
-      if (isAlreadyFav) {
-        await supabase.from('lineup_favorites').delete().match({ user_id: currentUserId, lineup_id: id });
-      } else {
-        await supabase.from('lineup_favorites').insert({ user_id: currentUserId, lineup_id: id });
-      }
-      // Re-fetch discret pour s'assurer que les noms récupérés via la jointure soient exacts
-      fetchInitialData();
-    } catch (e) { 
-      console.error(e); 
+    
+    // Au lieu de fetchInitialData(), on rafraîchit UNIQUEMENT la table des favoris en tâche de fond
+    const { data: freshFavs } = await supabase
+      .from('lineup_favorites')
+      .select(`
+        lineup_id,
+        user_id,
+        profiles ( display_name )
+      `);
+      
+    if (freshFavs) {
+      setAllGroupFavorites(freshFavs);
     }
-  };
+  } catch (e) { 
+    console.error("Erreur favoris:", e);
+    // Optionnel : Tu pourrais restaurer l'état précédent ici en cas de vrai crash réseau
+  }
+};
 
   const filteredLineup = lineup.filter(item => {
     const matchesSearch = item.artist?.toLowerCase().includes(searchTerm.toLowerCase()) || 
