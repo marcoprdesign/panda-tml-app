@@ -68,6 +68,24 @@ export default function Schedule() {
     return matchesSearch && matchesDay && isFav;
   });
 
+  // Fonction utilitaire pour trier chronologiquement en comptant minuit/01h comme la fin de soirée
+  const getSortedArtistsForStage = (artists: any[]) => {
+    return [...artists].sort((a, b) => {
+      const getWeight = (timeStr: string) => {
+        if (!timeStr) return 0;
+        const [hours, minutes] = timeStr.split(':').map(Number);
+        let totalHours = hours + minutes / 60;
+        
+        // Si l'artiste joue entre 00:00 et 05:59, on le repousse artificiellement de 24 heures
+        if (hours >= 0 && hours < 6) {
+          totalHours += 24;
+        }
+        return totalHours;
+      };
+      return getWeight(a.start_time) - getWeight(b.start_time);
+    });
+  };
+
   if (loading) return (
     <div className="text-center py-10 text-[10px] font-black text-[#313449]/30 animate-pulse tracking-[0.3em] uppercase">
       Consulting the Lineup...
@@ -77,7 +95,7 @@ export default function Schedule() {
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-24 px-1">
       
-      {/* BARRE DE RECHERCHE - Waikawa 50/200/900 */}
+      {/* BARRE DE RECHERCHE */}
       <div className="relative group px-1">
         <input 
           type="text"
@@ -89,17 +107,17 @@ export default function Schedule() {
         <span className="absolute left-5 top-1/2 -translate-y-1/2 opacity-30 text-xs">🔍</span>
       </div>
 
-      {/* ONGLETS GLOBAL / MY SCHEDULE - Waikawa 100/900 */}
+      {/* ONGLETS GLOBAL / MY SCHEDULE */}
       <div className="flex p-1 bg-[#ebecf3] rounded-2xl border border-[#d3d6e4] shadow-inner">
         <button onClick={() => setActiveSubTab('global')} className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 ${activeSubTab === 'global' ? 'bg-[#313449] text-[#f6f6f9] shadow-md' : 'text-[#8089b0]'}`}>
-          Global
+          Timetable
         </button>
         <button onClick={() => setActiveSubTab('my')} className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 ${activeSubTab === 'my' ? 'bg-[#313449] text-[#f6f6f9] shadow-md' : 'text-[#8089b0]'}`}>
-          My Path ({favorites.length})
+          My favorites ({favorites.length})
         </button>
       </div>
 
-      {/* FILTRE JOURS - Waikawa 50/200/900 */}
+      {/* FILTRE JOURS */}
       {!searchTerm && (
         <div className="flex gap-2 animate-in fade-in zoom-in-95 duration-300">
           {['Friday', 'Saturday', 'Sunday'].map(day => (
@@ -113,8 +131,11 @@ export default function Schedule() {
       {/* LISTE DES ARTISTES */}
       <div className="space-y-12 mt-8">
         {stages.map(stage => {
-          const stageArtists = filteredLineup.filter(item => item.stage?.toUpperCase() === stage);
-          if (stageArtists.length === 0) return null;
+          const unsortedStageArtists = filteredLineup.filter(item => item.stage?.toUpperCase() === stage);
+          if (unsortedStageArtists.length === 0) return null;
+
+          // Application du tri temporel intelligent avant d'afficher
+          const stageArtists = getSortedArtistsForStage(unsortedStageArtists);
 
           return (
             <div key={stage} className="space-y-5">
