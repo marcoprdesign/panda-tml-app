@@ -16,127 +16,97 @@ export default function Schedule() {
   const [searchTerm, setSearchTerm] = useState("");
   const [lineup, setLineup] = useState<any[]>([]);
   const [stages, setStages] = useState<string[]>([]);
+  const [favorites, setFavorites] = useState<number[]>([]);
   const [loading, setLoading] = useState(true);
-  
-  const [expandedArtistId, setExpandedArtistId] = useState<number | null>(null);
-  const [allGroupFavorites, setAllGroupFavorites] = useState<any[]>([]);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  // 1. Chargement du Lineup (Indépendant de l'utilisateur)
-  const fetchLineup = async () => {
-    try {
-      const { data: lineupData } = await supabase
-        .from('lineup')
-        .select('*')
-        .order('start_time', { ascending: true });
-      
-      if (lineupData) {
-        setLineup(lineupData);
-        const uniqueStages = Array.from(new Set(lineupData.map(item => item.stage?.toUpperCase()))).filter(Boolean) as string[];
-        const sortedStages = uniqueStages.sort((a, b) => (STAGE_PRIORITY[a] || 999) - (STAGE_PRIORITY[b] || 999));
-        setStages(sortedStages);
-      }
-    } catch (e) {
-      console.error("Error loading lineup:", e);
-    }
-  };
-
-  // 2. Chargement de TOUS les favoris du groupe (Dépend de l'authentification)
-  const fetchGroupFavorites = async () => {
-    try {
-      const { data: favData } = await supabase
-        .from('lineup_favorites')
-        .select(`
-          lineup_id,
-          user_id,
-          profiles ( display_name )
-        `);
-        
-      if (favData) {
-        setAllGroupFavorites(favData);
-      }
-    } catch (e) {
-      console.error("Error loading favorites:", e);
-    }
-  };
-
-  // 3. Écouteur de session dynamique + Premier chargement
+  // 1. Initialisation unique au montage du composant
   useEffect(() => {
-    fetchLineup();
+    const initApp = async () => {
+      try {
+        setLoading(true);
 
-    // On s'abonne aux changements d'état de l'authentification Supabase
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        setCurrentUserId(session.user.id);
-        fetchGroupFavorites(); // On charge les favoris dès que la session est confirmée
-      } else {
-        setCurrentUserId(null);
-        setAllGroupFavorites([]);
+        // Récupération du Lineup
+        const { data: lineupData } = await supabase
+          .from('lineup')
+          .select('*')
+          .order('start_time', { ascending: true });
+        
+        if (lineupData) {
+          setLineup(lineupData);
+          const uniqueStages = Array.from(new Set(lineupData.map(item => item.stage?.toUpperCase()))).filter(Boolean) as string[];
+          const sortedStages = uniqueStages.sort((a, b) => (STAGE_PRIORITY[a] || 999) - (STAGE_PRIORITY[b] || 999));
+          setStages(sortedStages);
+        }
+
+        // Récupération de la session utilisateur
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session) {
+          setCurrentUserId(session.user.id);
+          
+          // Récupération des favoris personnels
+          const { data: favData } = await supabase
+            .from('lineup_favorites')
+            .select('lineup_id')
+            .eq('user_id', session.user.id);
+            
+          if (favData) {
+            setFavorites(favData.map(f => f.lineup_id));
+          }
+        }
+      } catch (e) {
+        console.error("Erreur initialisation:", e);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false); // Le chargement s'arrête une fois fixés sur l'auth
-    });
-
-    // Nettoyage de l'abonnement quand le composant est détruit
-    return () => {
-      subscription.unsubscribe();
     };
+
+    initApp();
   }, []);
 
-  const myFavoritesIds = allGroupFavorites
-    .filter(fav => fav.user_id === currentUserId)
-    .map(fav => fav.lineup_id);
-
+  // 2. Action d'ajout/suppression en favoris (Cliquable uniquement sur l'étoile)
   const toggleFavorite = async (e: React.MouseEvent, id: number) => {
-    e.stopPropagation();
+    e.stopPropagation(); // Bloque l'ouverture de l'artiste
     if (!currentUserId) return;
-    
-    const isAlreadyFav = myFavoritesIds.includes(id);
 
-    if (isAlreadyFav) {
-      setAllGroupFavorites(prev => prev.filter(f => !(f.user_id === currentUserId && f.lineup_id === id)));
-    } else {
-      setAllGroupFavorites(prev => [...prev, { lineup_id: id, user_id: currentUserId, profiles: { display_name: "You" } }]);
-    }
+    const isAlreadyFav = favorites.includes(id);
+
+    // Mise à jour visuelle instantanée (UI optimiste)
+    setFavorites(prev => isAlreadyFav ? prev.filter(f => f !== id) : [...prev, id]);
 
     try {
       if (isAlreadyFav) {
-        await supabase.from('lineup_favorites').delete().match({ user_id: currentUserId, lineup_id: id });
+        await supabase
+          .from('lineup_favorites')
+          .delete()
+          .match({ user_id: currentUserId, lineup_id: id });
       } else {
-        await supabase.from('lineup_favorites').insert({ user_id: currentUserId, lineup_id: id });
+        await supabase
+          .from('lineup_favorites')
+          .insert({ user_id: currentUserId, lineup_id: id });
       }
-      
-      // Rafraîchissement discret en arrière-plan
-      const { data: freshFavs } = await supabase
-        .from('lineup_favorites')
-        .select(`
-          lineup_id,
-          user_id,
-          profiles ( display_name )
-        `);
-        
-      if (freshFavs) {
-        setAllGroupFavorites(freshFavs);
-      }
-    } catch (e) { 
-      console.error(e); 
+    } catch (e) {
+      console.error("Erreur Supabase favoris:", e);
     }
   };
 
+  // 3. Filtrage du Lineup
   const filteredLineup = lineup.filter(item => {
     const matchesSearch = item.artist?.toLowerCase().includes(searchTerm.toLowerCase()) || 
                           item.stage?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesDay = searchTerm.length > 0 ? true : (item.day?.toLowerCase() === selectedDay.toLowerCase());
-    const isFav = activeSubTab === 'my' ? myFavoritesIds.includes(item.id) : true;
+    const isFav = activeSubTab === 'my' ? favorites.includes(item.id) : true;
     return matchesSearch && matchesDay && isFav;
   });
 
+  // 4. Tri chronologique de fin de soirée (Minuit / 01h à la fin)
   const getSortedArtistsForStage = (artists: any[]) => {
     return [...artists].sort((a, b) => {
       const getWeight = (timeStr: string) => {
         if (!timeStr) return 0;
         const [hours, minutes] = timeStr.split(':').map(Number);
         let totalHours = hours + minutes / 60;
-        if (hours >= 0 && hours < 6) totalHours += 24;
+        if (hours >= 0 && hours < 6) totalHours += 24; // Pousse la nuit à la fin
         return totalHours;
       };
       return getWeight(a.start_time) - getWeight(b.start_time);
@@ -170,7 +140,7 @@ export default function Schedule() {
           Timetable
         </button>
         <button onClick={() => setActiveSubTab('my')} className={`flex-1 py-3 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all duration-300 ${activeSubTab === 'my' ? 'bg-[#313449] text-[#f6f6f9] shadow-md' : 'text-[#8089b0]'}`}>
-          My favorites ({myFavoritesIds.length})
+          My favorites ({favorites.length})
         </button>
       </div>
 
@@ -202,51 +172,28 @@ export default function Schedule() {
 
               <div className="space-y-3">
                 {stageArtists.map(artist => {
-                  const isFav = myFavoritesIds.includes(artist.id);
-                  const isExpanded = expandedArtistId === artist.id;
-
-                  const whoFavsThisArtist = allGroupFavorites
-                    .filter(fav => fav.lineup_id === artist.id && fav.user_id !== currentUserId)
-                    .map(fav => fav.profiles?.display_name || "Un pote");
+                  const isFav = favorites.includes(artist.id);
 
                   return (
-                    <div key={artist.id} className="space-y-2">
-                      <div 
-                        onClick={() => setExpandedArtistId(isExpanded ? null : artist.id)}
-                        className={`p-5 rounded-[1.8rem] border transition-all duration-300 flex justify-between items-center cursor-pointer active:scale-[0.99] bg-white border-[#d3d6e4] shadow-sm`}
-                      >
-                        <div className="flex flex-col gap-1">
-                          <div className="text-[11px] font-black uppercase tracking-wider leading-none text-[#313449]">{artist.artist}</div>
-                          <div className="text-[8px] font-bold uppercase tracking-widest text-[#58618a]">
-                            {searchTerm ? `${artist.day.slice(0,3)} • ` : ''} {artist.start_time} — {artist.end_time}
-                          </div>
+                    <div 
+                      key={artist.id} 
+                      className="p-5 rounded-[1.8rem] border flex justify-between items-center bg-white border-[#d3d6e4] shadow-sm"
+                    >
+                      <div className="flex flex-col gap-1">
+                        <div className="text-[11px] font-black uppercase tracking-wider leading-none text-[#313449]">{artist.artist}</div>
+                        <div className="text-[8px] font-bold uppercase tracking-widest text-[#58618a]">
+                          {searchTerm ? `${artist.day.slice(0,3)} • ` : ''} {artist.start_time} — {artist.end_time}
                         </div>
-
-                        <button 
-                          onClick={(e) => toggleFavorite(e, artist.id)}
-                          className={`w-9 h-9 rounded-full flex items-center justify-center text-xs transition-all border outline-none
-                            ${isFav ? 'bg-[#202231] text-[#f6f6f9] border-[#202231]' : 'bg-[#f6f6f9] text-[#adb2cc] border-[#d3d6e4]'}`}
-                        >
-                          {isFav ? '✦' : '✧'}
-                        </button>
                       </div>
 
-                      {isExpanded && (
-                        <div className="mx-4 p-4 bg-[#ebecf3]/60 border border-[#d3d6e4]/60 rounded-2xl animate-in slide-in-from-top-2 duration-300">
-                          <h4 className="text-[8px] font-black tracking-widest uppercase text-[#8089b0] mb-2">🧑‍🤝‍🧑 On stage with:</h4>
-                          {whoFavsThisArtist.length > 0 ? (
-                            <div className="flex flex-wrap gap-1.5">
-                              {whoFavsThisArtist.map((name, i) => (
-                                <span key={i} className="px-2.5 py-1 bg-white border border-[#d3d6e4] rounded-full text-[9px] font-black text-[#313449] uppercase tracking-wide shadow-sm">
-                                  🐼 {name}
-                                </span>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-[9px] italic font-medium text-[#8089b0]">No one else in the squad added this artist yet.</p>
-                          )}
-                        </div>
-                      )}
+                      {/* ÉTOILE UNIQUE CLICABLE */}
+                      <button 
+                        onClick={(e) => toggleFavorite(e, artist.id)}
+                        className={`w-9 h-9 rounded-full flex items-center justify-center text-xs transition-all border outline-none
+                          ${isFav ? 'bg-[#202231] text-[#f6f6f9] border-[#202231]' : 'bg-[#f6f6f9] text-[#adb2cc] border-[#d3d6e4]'}`}
+                      >
+                        {isFav ? '✦' : '✧'}
+                      </button>
                     </div>
                   );
                 })}
