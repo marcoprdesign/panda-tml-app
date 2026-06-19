@@ -2,17 +2,17 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/supabase';
 
-// Date de déblocage : 20 Juillet 2026 à 12:00 UTC (14:00 FR/BE)
-const UNLOCK_DATE = new Date('2026-07-20:00:00Z');
+const UNLOCK_DATE = new Date('2026-06-18T12:00:00Z');
 
-export default function TimeCapsuleMessages() {
+interface TimeCapsuleMessagesProps {
+  currentUserId: string;
+}
+
+export default function TimeCapsuleMessages({ currentUserId }: TimeCapsuleMessagesProps) {
   const [profiles, setProfiles] = useState<any[]>([]);
   const [selectedReceiverId, setSelectedReceiverId] = useState<string>("");
   const [messageText, setMessageText] = useState<string>("");
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  
   const [receivedMessages, setReceivedMessages] = useState<any[]>([]);
-  const [sentMessages, setSentMessages] = useState<any[]>([]);
   const [isLocked, setIsLocked] = useState(true);
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
@@ -22,56 +22,46 @@ export default function TimeCapsuleMessages() {
     const initMessages = async () => {
       try {
         setLoading(true);
-        
-        // 1. Vérification du verrou temporel en local
         const now = new Date();
         setIsLocked(now < UNLOCK_DATE);
 
-        // 2. Session User
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) return;
-        const uid = session.user.id;
-        setCurrentUserId(uid);
-
-        // 3. Récupération des pandas (autres profils)
+        // Récupération des autres pandas du groupe
         const { data: profilesData } = await supabase
           .from('profiles')
           .select('id, username')
-          .not('id', 'eq', uid); // Exclure soi-même
-        if (profilesData) setProfiles(profilesData);
+          .not('id', 'eq', currentUserId);
+        
+        if (profilesData) {
+          // 🔥 Tri de la liste des pandas par ordre alphabétique
+          const sortedProfiles = [...profilesData].sort((a, b) => 
+            (a.username || "").localeCompare(b.username || "")
+          );
+          setProfiles(sortedProfiles);
+        }
 
-        // 4. Charger les messages
-        await fetchMessages(uid);
-
+        await fetchMessages();
       } catch (e) {
-        console.error("Erreur initialisation messages:", e);
+        console.error("Error initializing messages:", e);
       } finally {
         setLoading(false);
       }
     };
 
-    initMessages();
-  }, []);
+    if (currentUserId) initMessages();
+  }, [currentUserId]);
 
-  const fetchMessages = async (uid: string) => {
-    // Reçus
+  const fetchMessages = async () => {
     const { data: received } = await supabase
       .from('time_capsule_messages')
-      .select('id, created_at, sender_id, message_text');
+      .select('id, created_at, sender_id, message_text')
+      .eq('receiver_id', currentUserId);
     
-    // Envoyés
-    const { data: sent } = await supabase
-      .from('time_capsule_messages')
-      .select('id, created_at, receiver_id, message_text')
-      .eq('sender_id', uid);
-
     if (received) setReceivedMessages(received);
-    if (sent) setSentMessages(sent);
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!currentUserId || !selectedReceiverId || !messageText.trim()) return;
+    if (!selectedReceiverId || !messageText.trim()) return;
 
     try {
       setSending(true);
@@ -88,13 +78,11 @@ export default function TimeCapsuleMessages() {
       if (error) throw error;
 
       setMessageText("");
-      setStatusMessage("✉️ Capsule scellée et enregistrée !");
-      await fetchMessages(currentUserId);
-
-      setTimeout(() => setStatusMessage(null), 4000);
+      setStatusMessage("✉️ Capsule sealed successfully!");
+      setTimeout(() => setStatusMessage(null), 3000);
     } catch (err) {
       console.error(err);
-      setStatusMessage("❌ Erreur lors de l'envoi...");
+      setStatusMessage("❌ Error while sending...");
     } finally {
       setSending(false);
     }
@@ -102,22 +90,22 @@ export default function TimeCapsuleMessages() {
 
   if (loading) return (
     <div className="text-center py-10 text-[10px] font-black text-[#313449]/30 animate-pulse tracking-[0.3em] uppercase">
-      Chiffrement de la capsule...
+      Encrypting capsule...
     </div>
   );
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500 pb-24 px-1">
-      
-      {/* SECTION ENVOI */}
+    <div className="space-y-8 animate-in fade-in duration-500 max-w-md mx-auto">
+      {/* FORMULAIRE D'ENVOI */}
       <div className="bg-white border border-[#d3d6e4] rounded-[2rem] p-6 shadow-sm space-y-4">
         <div className="space-y-1">
-          <h3 className="text-[11px] font-black uppercase tracking-wider text-[#313449]">⏳ Capsule Temporelle</h3>
-          <p className="text-[9px] font-bold text-[#8089b0] uppercase tracking-wide">Laisse un message secret à un panda. Révélation le lundi 20 juillet à 12:00.</p>
+          <h3 className="text-[11px] font-black uppercase tracking-wider text-[#313449]">⏳ Time Capsule</h3>
+          <p className="text-[9px] font-bold text-[#8089b0] uppercase tracking-wide leading-normal">
+            Leave a secret message for a panda. Revelation on Monday, July 20th at 12:00.
+          </p>
         </div>
 
         <form onSubmit={handleSendMessage} className="space-y-4 pt-2">
-          {/* Sélection du Destinataire */}
           <div className="relative">
             <select
               value={selectedReceiverId}
@@ -125,7 +113,7 @@ export default function TimeCapsuleMessages() {
               className="w-full bg-[#f6f6f9] border border-[#d3d6e4] rounded-xl py-3 px-4 text-[11px] font-bold text-[#313449] focus:outline-none appearance-none cursor-pointer"
               required
             >
-              <option value="" disabled>Choisir un panda...</option>
+              <option value="" disabled>Choose a panda...</option>
               {profiles.map(p => (
                 <option key={p.id} value={p.id}>🐼 {p.username}</option>
               ))}
@@ -133,68 +121,60 @@ export default function TimeCapsuleMessages() {
             <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none opacity-40 text-[10px]">▼</span>
           </div>
 
-          {/* Zone de texte */}
           <textarea
             value={messageText}
             onChange={(e) => setMessageText(e.target.value)}
-            placeholder="Écris ton message ici... Ton pote ne pourra pas le lire avant la fin du festival."
+            placeholder="Write your message here... Your friend won't be able to read it until the festival ends."
             rows={4}
-            className="w-full bg-[#f6f6f9] border border-[#d3d6e4] rounded-2xl p-4 text-[11px] font-bold text-[#313449] placeholder-[#8089b0]/50 focus:outline-none focus:ring-2 focus:ring-[#313449]/5 resize-none shadow-inner"
+            className="w-full bg-[#f6f6f9] border border-[#d3d6e4] rounded-2xl p-4 text-[11px] font-bold text-[#313449] placeholder-[#8089b0]/50 focus:outline-none resize-none shadow-inner"
             required
           />
 
-          {/* Bouton Envoyer */}
           <button
             type="submit"
             disabled={sending}
             className="w-full py-3.5 bg-[#313449] text-[#f6f6f9] rounded-xl text-[10px] font-black uppercase tracking-widest hover:opacity-90 transition-all shadow-md disabled:opacity-50"
           >
-            {sending ? 'Scellage...' : 'Sceller le message dans le temps 🔒'}
+            {sending ? 'Sealing...' : 'Seal message in time 🔒'}
           </button>
         </form>
 
         {statusMessage && (
-          <div className="text-center text-[9px] font-black uppercase tracking-wider text-[#f59e0b] animate-bounce mt-2">
+          <div className="text-center text-[9px] font-black uppercase tracking-wider text-[#f59e0b] animate-pulse">
             {statusMessage}
           </div>
         )}
       </div>
 
-      {/* SECTION BOÎTE DE RÉCEPTION */}
+      {/* RECEPTION */}
       <div className="space-y-4">
         <div className="flex items-center gap-4 px-2">
-          <h3 className="text-[10px] font-black text-[#313449] uppercase tracking-[0.4em] whitespace-nowrap">Capsules reçues</h3>
+          <h3 className="text-[10px] font-black text-[#313449] uppercase tracking-[0.4em] whitespace-nowrap">Received Capsules</h3>
           <div className="h-[1px] flex-1 bg-[#d3d6e4]"></div>
         </div>
 
         <div className="space-y-3">
           {receivedMessages.length === 0 ? (
             <div className="text-center py-8 bg-[#ebecf3]/50 rounded-2xl border border-dashed border-[#d3d6e4]">
-              <p className="text-[9px] font-black text-[#8089b0] uppercase tracking-[0.2em]">Aucune capsule pour le moment</p>
+              <p className="text-[9px] font-black text-[#8089b0] uppercase tracking-[0.2em]">No capsules received yet</p>
             </div>
           ) : (
             receivedMessages.map((msg) => {
-              const sender = profiles.find(p => p.id === msg.sender_id)?.username || "Un panda";
-              
+              const sender = profiles.find(p => p.id === msg.sender_id)?.username || "A panda";
               return (
                 <div key={msg.id} className="p-4 bg-white border border-[#d3d6e4] rounded-2xl shadow-sm space-y-2">
                   <div className="flex justify-between items-center">
-                    <span className="text-[9px] font-black text-[#313449] uppercase tracking-wide">De : 🐼 {sender}</span>
-                    <span className="text-[8px] font-bold text-[#8089b0]">
-                      {new Date(msg.created_at).toLocaleDateString()}
-                    </span>
+                    <span className="text-[9px] font-black text-[#313449] uppercase tracking-wide">From: 🐼 {sender}</span>
+                    <span className="text-[8px] font-bold text-[#8089b0]">{new Date(msg.created_at).toLocaleDateString()}</span>
                   </div>
-                  
                   {isLocked ? (
-                    /* Affichage verrouillé */
                     <div className="p-3 bg-[#ebecf3]/60 rounded-xl border border-dashed border-[#d3d6e4] flex items-center gap-3">
                       <span className="text-base animate-pulse">🔒</span>
                       <div className="text-[9px] font-black uppercase tracking-wider text-[#58618a]">
-                        Message crypté jusqu'au <span className="text-[#f59e0b]">20 juillet, 12h00</span>
+                        Message encrypted until <span className="text-[#f59e0b]">July 20, 12:00 PM</span>
                       </div>
                     </div>
                   ) : (
-                    /* Affichage déverrouillé */
                     <p className="text-[11px] font-bold text-[#313449] bg-[#f6f6f9] p-3 rounded-xl border border-[#d3d6e4] leading-relaxed">
                       {msg.message_text}
                     </p>

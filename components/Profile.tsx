@@ -7,6 +7,7 @@ import FAQ from './FAQ';
 import Calculator from './Calculator';
 import StepsFeature from './StepsFeature'; 
 import EventArchives from './EventArchives'; 
+import TimeCapsuleMessages from './TimeCapsuleMessages'; // Import de la capsule temporelle
 import { 
   HelpCircleIcon, 
   UserGroupIcon, 
@@ -25,6 +26,7 @@ export default function Profile({ profile, setProfile, session, setActiveTab }: 
   const [showFAQ, setShowFAQ] = useState(false);
   const [showCalc, setShowCalc] = useState(false);
   const [showSteps, setShowSteps] = useState(false); 
+  const [showMessages, setShowMessages] = useState(false); // État pour gérer la vue Messages
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     username: profile?.username || '',
@@ -60,6 +62,19 @@ export default function Profile({ profile, setProfile, session, setActiveTab }: 
   if (showSteps) return (
     <div className="min-h-screen bg-[#f6f6f9]">
       <StepsFeature userProfile={profile} onBack={() => setShowSteps(false)} />
+    </div>
+  );
+
+  if (showMessages) return (
+    <div className="min-h-screen bg-[#f6f6f9] p-6">
+      {/* Bouton retour personnalisé pour rester dans la charte graphique de l'app */}
+      <button 
+        onClick={() => setShowMessages(false)} 
+        className="mb-6 px-4 py-2 rounded-full border border-[#d3d6e4] bg-[#ebecf3]/50 text-[9px] font-black text-[#313449] uppercase tracking-[0.2em] active:scale-95 transition-all"
+      >
+        ← Back to Profile
+      </button>
+      <TimeCapsuleMessages currentUserId={session.user.id} />
     </div>
   );
 
@@ -144,6 +159,7 @@ export default function Profile({ profile, setProfile, session, setActiveTab }: 
             onClick={() => { 
                 if (tool.id === 'calc') setShowCalc(true); 
                 if (tool.id === 'steps') setShowSteps(true); 
+                if (tool.id === 'messages') setShowMessages(true); // Gère l'ouverture des messages
             }} 
             className="flex flex-col items-center justify-center py-6 gap-3 bg-[#ebecf3]/40 border border-[#d3d6e4]/50 rounded-[2rem] active:scale-95 transition-all"
           >
