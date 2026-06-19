@@ -66,17 +66,10 @@ export default function Profile({ profile, setProfile, session, setActiveTab }: 
   );
 
   if (showMessages) return (
-    <div className="min-h-screen bg-[#f6f6f9] p-6">
-      {/* Bouton retour personnalisé pour rester dans la charte graphique de l'app */}
-      <button 
-        onClick={() => setShowMessages(false)} 
-        className="mb-6 px-4 py-2 rounded-full border border-[#d3d6e4] bg-[#ebecf3]/50 text-[9px] font-black text-[#313449] uppercase tracking-[0.2em] active:scale-95 transition-all"
-      >
-        ← Back to Profile
-      </button>
-      <TimeCapsuleMessages currentUserId={session.user.id} />
-    </div>
-  );
+  <div className="min-h-screen bg-[#f6f6f9]">
+    <TimeCapsuleMessages currentUserId={session.user.id} onBack={() => setShowMessages(false)} />
+  </div>
+);
 
   // --- INTERFACE PRINCIPALE DU PROFIL ---
   const tools = [
