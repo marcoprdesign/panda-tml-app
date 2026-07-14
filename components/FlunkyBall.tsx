@@ -180,7 +180,13 @@ export default function FlunkyBall() {
         .select();
 
       if (error) throw error;
+      
+      // 🔄 1. On rafraîchit l'historique global
       await fetchHistory();
+      
+      // 🔙 2. On quitte la vue détails pour revenir à la liste
+      setSelectedGame(null);
+      
     } catch (err: any) {
       console.error("Error deleting game:", err);
       alert(`Could not delete this match: ${err.message}`);
