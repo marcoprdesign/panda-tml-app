@@ -27,6 +27,7 @@ export default function Auth() {
     setLoading(true);
     
     if (isRegister) {
+      // Correction du destructuring de supabase.auth.signUp pour corriger l'erreur TS
       const { data, error: signUpError } = await supabase.auth.signUp({ 
         email, 
         password,
@@ -35,7 +36,7 @@ export default function Auth() {
 
       if (signUpError) {
         alert(signUpError.message);
-      } else if (data.user) {
+      } else if (data?.user) {
         const { error: profileError } = await supabase
           .from('profiles')
           .upsert({ 
@@ -49,7 +50,7 @@ export default function Auth() {
         if (profileError) {
           alert("Erreur profil: " + profileError.message);
         } else {
-          alert('Archive created! Please verify your email.');
+          alert('Profile created!');
         }
       }
     } else {
@@ -77,7 +78,6 @@ export default function Auth() {
       </div>
 
       <form onSubmit={handleAuth} className="space-y-4">
-        {/* ... (Reste du formulaire identique) */}
         <div className="space-y-3">
           {isRegister && (
             <>
@@ -133,10 +133,11 @@ export default function Auth() {
           {isRegister && (
             <input
               type="text"
-              placeholder="SECRET ACCESS KEY (OPTIONAL)"
+              placeholder="SECRET ACCESS KEY"
               value={secretKey}
               onChange={(e) => setSecretKey(e.target.value)}
-              className="w-full bg-[#313449]/5 border-2 border-[#313449]/30 rounded-2xl p-5 text-[11px] font-black text-[#313449] outline-none placeholder:text-[#313449]/20 uppercase tracking-[0.3em] shadow-inner"
+              className="w-full bg-white/40 border border-[#8089b0]/10 rounded-2xl p-5 text-[11px] font-black text-[#313449] outline-none placeholder:text-[#8089b0]/30 uppercase tracking-widest shadow-sm"
+              required
             />
           )}
         </div>
