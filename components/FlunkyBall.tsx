@@ -233,7 +233,7 @@ export default function FlunkyBall() {
                 {history.map(game => (
                   <div key={game.id} onClick={() => setSelectedGame(game)} className="bg-white p-5 rounded-[2.2rem] border border-[#d3d6e4] shadow-sm active:bg-[#ebecf3] transition-all cursor-pointer">
                     <div className="flex justify-between items-start mb-3">
-                      <span className="bg-[#313449] text-[#f6f6f9] text-[8px] font-black uppercase px-3 py-1.5 rounded-full tracking-wider">Victor: {game.winner_team}</span>
+                      <span className="bg-[#313449] text-[#f6f6f9] text-[8px] font-black uppercase px-3 py-1.5 rounded-full tracking-wider">Winner: {game.winner_team}</span>
                       <span className="text-[#8089b0] text-[8px] font-black uppercase tracking-[0.1em]">{new Date(game.created_at).toLocaleDateString()}</span>
                     </div>
                     <p className="text-[11px] font-black text-[#313449] uppercase tracking-tight line-clamp-1 italic">{game.winner_names}</p>
