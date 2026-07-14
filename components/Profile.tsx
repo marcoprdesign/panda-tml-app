@@ -7,7 +7,8 @@ import FAQ from './FAQ';
 import Calculator from './Calculator';
 import StepsFeature from './StepsFeature'; 
 import EventArchives from './EventArchives'; 
-import TimeCapsuleMessages from './TimeCapsuleMessages'; // Import de la capsule temporelle
+import TimeCapsuleMessages from './TimeCapsuleMessages'; 
+import FamilyTree from './FamilyTree'; // Import de l'arbre généalogique
 import { 
   HelpCircleIcon, 
   UserGroupIcon, 
@@ -26,7 +27,8 @@ export default function Profile({ profile, setProfile, session, setActiveTab }: 
   const [showFAQ, setShowFAQ] = useState(false);
   const [showCalc, setShowCalc] = useState(false);
   const [showSteps, setShowSteps] = useState(false); 
-  const [showMessages, setShowMessages] = useState(false); // État pour gérer la vue Messages
+  const [showMessages, setShowMessages] = useState(false); 
+  const [showFamily, setShowFamily] = useState(false); // État pour gérer la vue Arbre Généalogique
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     username: profile?.username || '',
@@ -66,10 +68,16 @@ export default function Profile({ profile, setProfile, session, setActiveTab }: 
   );
 
   if (showMessages) return (
-  <div className="min-h-screen bg-[#f6f6f9]">
-    <TimeCapsuleMessages currentUserId={session.user.id} onBack={() => setShowMessages(false)} />
-  </div>
-);
+    <div className="min-h-screen bg-[#f6f6f9]">
+      <TimeCapsuleMessages currentUserId={session.user.id} onBack={() => setShowMessages(false)} />
+    </div>
+  );
+
+  if (showFamily) return (
+    <div className="min-h-screen bg-[#f6f6f9]">
+      <FamilyTree onBack={() => setShowFamily(false)} />
+    </div>
+  );
 
   // --- INTERFACE PRINCIPALE DU PROFIL ---
   const tools = [
@@ -152,7 +160,8 @@ export default function Profile({ profile, setProfile, session, setActiveTab }: 
             onClick={() => { 
                 if (tool.id === 'calc') setShowCalc(true); 
                 if (tool.id === 'steps') setShowSteps(true); 
-                if (tool.id === 'messages') setShowMessages(true); // Gère l'ouverture des messages
+                if (tool.id === 'messages') setShowMessages(true); 
+                if (tool.id === 'family') setShowFamily(true); 
             }} 
             className="flex flex-col items-center justify-center py-6 gap-3 bg-[#ebecf3]/40 border border-[#d3d6e4]/50 rounded-[2rem] active:scale-95 transition-all"
           >

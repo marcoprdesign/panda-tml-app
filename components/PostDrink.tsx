@@ -205,14 +205,14 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
   return (
     <div className="w-full space-y-4 px-1">
       {status === 'capturing' && (
-        <div className="fixed inset-0 z-[100] bg-black flex flex-col items-center justify-between p-8">
-          <div className="bg-white/10 backdrop-blur-md px-6 py-2 rounded-full border border-white/20 mt-4">
-            <p className="text-white text-[10px] font-black uppercase tracking-widest text-center">
+        <div className="fixed inset-0 z-[100] bg-white flex flex-col items-center justify-between p-8">
+          <div className="bg-[#313449]/10 backdrop-blur-md px-6 py-2 rounded-full border border-[#313449]/20 mt-4">
+            <p className="text-[#313449] text-[10px] font-black uppercase tracking-widest text-center">
               {activeSide === 'back' ? '📸 Step 1: The Drink' : '🤳 Step 2: Smile!'}
             </p>
           </div>
 
-          <div className="relative w-full aspect-[4/5] bg-neutral-900 rounded-[3rem] overflow-hidden border border-white/10 shadow-2xl">
+          <div className="relative w-full aspect-[4/5] bg-neutral-900 rounded-[3rem] overflow-hidden border border-[#d3d6e4] shadow-2xl">
             <video 
               ref={videoRef} 
               playsInline muted autoPlay
@@ -224,12 +224,12 @@ export default function PostDrink({ userProfile, onPost }: { userProfile: any, o
             {activeSide === 'back' ? (
               <button 
                 onClick={handleShutterClick}
-                className="w-20 h-20 bg-white rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition-transform"
+                className="w-20 h-20 bg-[#313449] rounded-full flex items-center justify-center shadow-2xl active:scale-90 transition-transform"
               >
-                <div className="w-16 h-16 border-4 border-black rounded-full" />
+                <div className="w-16 h-16 border-4 border-white rounded-full" />
               </button>
             ) : (
-              <div className="text-white/40 text-[9px] font-black uppercase tracking-[0.3em] animate-pulse">
+              <div className="text-[#313449]/40 text-[9px] font-black uppercase tracking-[0.3em] animate-pulse">
                 Taking Selfie...
               </div>
             )}
