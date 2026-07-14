@@ -12,6 +12,9 @@ const COUNTRIES = [
 
 const YEARS = Array.from({ length: 2026 - 2014 + 1 }, (_, i) => (2014 + i).toString());
 
+// 🔐 Clé d'accès secrète de la communauté
+const SECRET_ACCESS_KEY = "PANDASOFTML2026";
+
 export default function Auth() {
   const [loading, setLoading] = useState(false);
   const [email, setEmail] = useState('');
@@ -24,10 +27,19 @@ export default function Auth() {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // 🛑 BLOCAGE IMMÉDIAT : Vérification stricte avant toute action
+    if (isRegister) {
+      if (!secretKey || secretKey.trim() !== SECRET_ACCESS_KEY) {
+        alert("❌ INVALID SECRET ACCESS KEY. ACCESS DENIED.");
+        return; // Stoppe l'exécution du script ici
+      }
+    }
+
+    // Le code continue uniquement si la clé est correcte (ou si c'est une connexion)
     setLoading(true);
     
     if (isRegister) {
-      // Correction du destructuring de supabase.auth.signUp pour corriger l'erreur TS
       const { data, error: signUpError } = await supabase.auth.signUp({ 
         email, 
         password,
