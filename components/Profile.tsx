@@ -8,14 +8,13 @@ import Calculator from './Calculator';
 import StepsFeature from './StepsFeature'; 
 import EventArchives from './EventArchives'; 
 import TimeCapsuleMessages from './TimeCapsuleMessages'; 
-import FamilyTree from './FamilyTree'; // Import de l'arbre généalogique
 import { 
   HelpCircleIcon, 
   UserGroupIcon, 
   PencilEdit01Icon, 
   CheckmarkCircle01Icon,
   WorkoutRunIcon,
-  HierarchyIcon,
+  Archive01Icon, // Remplacement de l'icône de l'arbre par une icône dossier/archives
   Coins01Icon,
   BubbleChatIcon
 } from "hugeicons-react";
@@ -28,7 +27,7 @@ export default function Profile({ profile, setProfile, session, setActiveTab }: 
   const [showCalc, setShowCalc] = useState(false);
   const [showSteps, setShowSteps] = useState(false); 
   const [showMessages, setShowMessages] = useState(false); 
-  const [showFamily, setShowFamily] = useState(false); // État pour gérer la vue Arbre Généalogique
+  const [showArchives, setShowArchives] = useState(false); // Nouvel état pour gérer la vue pleine page des archives
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState({
     username: profile?.username || '',
@@ -73,18 +72,18 @@ export default function Profile({ profile, setProfile, session, setActiveTab }: 
     </div>
   );
 
-  if (showFamily) return (
+  if (showArchives) return (
     <div className="min-h-screen bg-[#f6f6f9]">
-      <FamilyTree onBack={() => setShowFamily(false)} />
+      <EventArchives onBack={() => setShowArchives(false)} />
     </div>
   );
 
   // --- INTERFACE PRINCIPALE DU PROFIL ---
   const tools = [
     { id: 'steps', label: 'Steps', icon: WorkoutRunIcon },
-    { id: 'family', label: 'Family Tree', icon: HierarchyIcon },
     { id: 'calc', label: 'Pearls', icon: Coins01Icon },
     { id: 'messages', label: 'Messages', icon: BubbleChatIcon },
+    { id: 'archives', label: 'Archives', icon: Archive01Icon }, // Changement ici !
   ];
 
   return (
@@ -161,7 +160,7 @@ export default function Profile({ profile, setProfile, session, setActiveTab }: 
                 if (tool.id === 'calc') setShowCalc(true); 
                 if (tool.id === 'steps') setShowSteps(true); 
                 if (tool.id === 'messages') setShowMessages(true); 
-                if (tool.id === 'family') setShowFamily(true); 
+                if (tool.id === 'archives') setShowArchives(true); // Redirection vers l'état des archives
             }} 
             className="flex flex-col items-center justify-center py-6 gap-3 bg-[#ebecf3]/40 border border-[#d3d6e4]/50 rounded-[2rem] active:scale-95 transition-all"
           >
@@ -175,7 +174,7 @@ export default function Profile({ profile, setProfile, session, setActiveTab }: 
 
       <div className="px-6 py-2"><div className="h-[1px] w-full bg-[#d3d6e4]/30" /></div>
       
-      {/* MEMBRES & ARCHIVES */}
+      {/* MEMBRES UNIQUEMENT */}
       <div className="space-y-4 px-1">
         <div className="flex items-center gap-2 px-2">
           <UserGroupIcon size={18} className="text-[#313449]" />
@@ -183,7 +182,6 @@ export default function Profile({ profile, setProfile, session, setActiveTab }: 
         </div>
         <Members />
       </div>
-      <div className="pt-2"><EventArchives /></div>
     </div>
   );
 }
